@@ -3,6 +3,11 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/cpu"
+verify_ssl = true
+name = "pytorch"
+
 [packages]
 alembic = "*"
 requests = "*"
@@ -15,6 +20,13 @@ bcrypt = "*"
 pyjwt = "*"
 pydantic-settings = "*"
 flasgger = "*"
+pandas = "*"
+scikit-learn = "*"
+pyarrow = "*"
+fastparquet = "*"
+torch = {index = "pytorch"}
+transformers = "*"
+numpy = "<2"
 
 [dev-packages]
 
