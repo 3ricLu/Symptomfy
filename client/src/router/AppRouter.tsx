@@ -1,0 +1,33 @@
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+
+import Home from "../pages/Home";
+import Booking from "../pages/Booking";
+import SignIn from "../pages/SignIn";
+import NotFound from "../pages/NotFound";
+
+import Navigation from "../common/Navigation";
+import Diagnosed from "../pages/Diagnosed";
+
+const AppRouter = () => {
+  return (
+    <BrowserRouter>
+      {/* Fixed top navigation bar */}
+      <div className="fixed top-0 left-0 w-full z-50">
+        <Navigation />
+      </div>
+
+      {/* Routed content */}
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/diagnosis" element={<Diagnosed />} />
+        <Route path="/booking" element={<Booking />} />
+        <Route path="/signin" element={<SignIn />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
+  );
+};
+
+export default AppRouter;
