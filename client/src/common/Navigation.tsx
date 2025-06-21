@@ -1,24 +1,23 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, CalendarDays, LogIn, LogOut } from "lucide-react";
+import logo from "../assets/images/logo.png";
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.clear(); // or clear just the auth token
+    localStorage.removeItem("token");
     navigate("/signin");
   };
 
   return (
     <nav className="bg-[#1C2D5A] text-white shadow-md h-16 flex items-center px-6">
       <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
-        {/* Logo */}
-        <div className="text-xl font-bold tracking-wide text-white">
-          Symptomfy
-        </div>
+        {/* Logo Image */}
+        <img src={logo} alt="Symptomfy Logo" className="h-18 object-contain" />
 
-        {/* Nav Links */}
+        {/* Navigation Links */}
         <div className="flex items-center space-x-6 text-sm font-medium">
           <NavLink
             to="/home"
@@ -55,6 +54,7 @@ const Navigation: React.FC = () => {
 
           <NavLink
             to="/signin"
+            onClick={handleLogout}
             className={({ isActive }) =>
               `flex items-center gap-2 hover:text-[#00B4D8] transition ${
                 isActive ? "text-[#00B4D8]" : "text-white"
