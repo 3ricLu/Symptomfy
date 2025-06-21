@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+alembic = "*"
+requests = "*"
+flask = "*"
+sqlalchemy = "*"
+uvicorn = "*"
+passlib = "*"
+psycopg2-binary = "*"
+bcrypt = "*"
+pyjwt = "*"
+pydantic-settings = "*"
+flasgger = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.12"
