@@ -10,6 +10,7 @@ const Profile: React.FC = () => {
   const [age, setAge] = useState<string>("");
   const [sex, setSex] = useState<string>("");
   const [address, setAddress] = useState<string>("");
+  const [doctor, setDoctor] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
@@ -73,7 +74,7 @@ const Profile: React.FC = () => {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-white text-[#1C2D5A] px-6 pt-20">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md mt-32">
         <CardContent>
           <h2 className="text-2xl font-bold mb-4">Your Profile</h2>
           <Separator className="mb-6" />
@@ -111,6 +112,17 @@ const Profile: React.FC = () => {
                 placeholder="Enter your address"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="doc">Doctor</Label>
+              <Input
+                id="doc"
+                type="text"
+                placeholder="Enter your family doctor"
+                value={doctor}
+                onChange={(e) => setDoctor(e.target.value)}
               />
             </div>
 

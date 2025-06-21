@@ -15,7 +15,7 @@ const Navigation: React.FC = () => {
     <nav className="bg-[#1C2D5A] text-white shadow-md h-16 flex items-center px-6">
       <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
         {/* Logo */}
-        <img src={logo} alt="Symptomfy Logo" className="h-9 object-contain" />
+        <img src={logo} alt="Symptomfy Logo" className="h-16 object-contain" />
 
         {/* Links */}
         <div className="flex items-center space-x-6 text-sm font-medium">
