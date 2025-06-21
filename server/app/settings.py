@@ -7,6 +7,9 @@ class Settings(BaseSettings):
       db_port: int
       db_name: str
       
+      secret_key: str
+      issuer: str
+      
       @property
       def database_url(self) -> str:
             return f"postgresql://{self.db_usr}:{self.db_pwd}@{self.db_adr}:{self.db_port}/{self.db_name}"
