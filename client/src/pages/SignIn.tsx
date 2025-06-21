@@ -18,6 +18,7 @@ const SignIn: React.FC = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [registerName, setRegisterName] = useState(""); // ← name state
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -74,6 +75,10 @@ const SignIn: React.FC = () => {
 
   const handleSignUpClick = async () => {
     setError("");
+    if (!registerName.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
     if (!isValidEmail(registerEmail)) {
       setError("Please enter a valid email.");
       return;
@@ -84,7 +89,11 @@ const SignIn: React.FC = () => {
     }
 
     try {
-      const data = await register(registerEmail, registerPassword);
+      const data = await register(
+        registerEmail,
+        registerPassword,
+        registerName
+      );
       const raw = data["access-token"] || "";
       const token = raw.toLowerCase().startsWith("bearer ")
         ? raw.slice(7)
@@ -152,6 +161,17 @@ const SignIn: React.FC = () => {
           {/* Sign Up */}
           <TabsContent value="signup">
             <div className="space-y-4">
+              {/* Name field */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="new-email">Email</Label>
                 <Input
@@ -190,6 +210,7 @@ const SignIn: React.FC = () => {
               {error && <p className="text-sm text-red-600">{error}</p>}
               <Button
                 disabled={
+                  !registerName ||
                   !isMatch ||
                   !registerPassword ||
                   !confirmPassword ||
