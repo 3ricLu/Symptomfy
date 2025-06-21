@@ -92,9 +92,9 @@ const Diagnosed: React.FC = () => {
     }
   };
 
-  const handleNearestClinic = async () => {
+  const handleNearestClinic = async (prompt: string) => {
     try {
-      const response = await axios.post("/api/gpt", { prompt: "hello" });
+      const response = await axios.post("/api/gpt", { prompt });
       setGeminiReply(response.data.output);
     } catch (error: any) {
       console.error("Error fetching from GPT proxy:", error);
@@ -202,7 +202,11 @@ const Diagnosed: React.FC = () => {
               </Dialog>
               <Button
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white"
-                onClick={handleNearestClinic}
+                onClick={() =>
+                  handleNearestClinic(
+                    "Find the nearest clinic near me that has low wait times."
+                  )
+                }
               >
                 Find Nearest Clinic
               </Button>
@@ -223,7 +227,7 @@ const Diagnosed: React.FC = () => {
   const q = questions[current];
   return (
     <div className="flex flex-col items-center min-h-screen bg-white text-[#1C2D5A] px-6 pt-8 space-y-8">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg mt-24">
         <CardContent>
           <h1 className="text-xl text-gray-600 mb-4">
             Step 1: Select area(s) of discomfort

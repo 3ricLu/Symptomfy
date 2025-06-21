@@ -4,6 +4,7 @@ import Home from "../pages/Home";
 import Booking from "../pages/Booking";
 import SignIn from "../pages/SignIn";
 import NotFound from "../pages/NotFound";
+import Profile from "../pages/Profile";
 
 import Navigation from "../common/Navigation";
 import Diagnosed from "../pages/Diagnosed";
@@ -24,6 +25,7 @@ const AppRouter = () => {
         <Route path="/diagnosis" element={<Diagnosed />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/signin" element={<SignIn />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

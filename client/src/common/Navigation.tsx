@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, ClipboardList, CalendarDays, LogIn, LogOut } from "lucide-react";
+import { Home, ClipboardList, CalendarDays, User, LogOut } from "lucide-react";
 import logo from "../assets/images/logo.png";
 
 const Navigation: React.FC = () => {
@@ -14,10 +14,10 @@ const Navigation: React.FC = () => {
   return (
     <nav className="bg-[#1C2D5A] text-white shadow-md h-16 flex items-center px-6">
       <div className="flex items-center justify-between w-full max-w-7xl mx-auto">
-        {/* Logo Image */}
-        <img src={logo} alt="Symptomfy Logo" className="h-18 object-contain" />
+        {/* Logo */}
+        <img src={logo} alt="Symptomfy Logo" className="h-9 object-contain" />
 
-        {/* Navigation Links */}
+        {/* Links */}
         <div className="flex items-center space-x-6 text-sm font-medium">
           <NavLink
             to="/home"
@@ -52,16 +52,16 @@ const Navigation: React.FC = () => {
             <CalendarDays size={18} /> Bookings
           </NavLink>
 
+          {/* Profile link */}
           <NavLink
-            to="/signin"
-            onClick={handleLogout}
+            to="/profile"
             className={({ isActive }) =>
               `flex items-center gap-2 hover:text-[#00B4D8] transition ${
                 isActive ? "text-[#00B4D8]" : "text-white"
               }`
             }
           >
-            <LogIn size={18} /> Sign In
+            <User size={18} /> Profile
           </NavLink>
 
           <button
