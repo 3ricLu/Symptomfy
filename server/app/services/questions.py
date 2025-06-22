@@ -35,7 +35,7 @@ def generate_question():
         
         # First question - what symptoms are you experiencing?
         if not user_answers:
-            return jsonify({
+            first_question = {
                 "question": "What symptoms are you experiencing?",
                 "question_id": "initial_symptoms",
                 "type": "multiple_choice",
@@ -43,10 +43,13 @@ def generate_question():
                 "is_final": False,
                 "question_number": 1,
                 "total_questions": 20
-            })
+            }
+            print(f"First question response: {first_question}")
+            return jsonify(first_question)
         
         # Use Gemini to generate the next question dynamically
         next_question = generate_next_question(user_answers, question_count + 1, body_location)
+        print(f"Generated next question: {next_question}")
         
         if next_question.get("is_final"):
             # Time to analyze and provide diagnosis
@@ -58,16 +61,19 @@ def generate_question():
                 diagnosis_data = diagnosis_result
             
             # Return combined response with diagnosis
-            return jsonify({
+            final_response = {
                 "is_final": True,
                 "question_number": question_count + 1,
                 "total_questions": 20,
                 **diagnosis_data
-            })
+            }
+            print(f"Final response: {final_response}")
+            return jsonify(final_response)
         else:
             # Add question number and total to the response
             next_question["question_number"] = question_count + 1
             next_question["total_questions"] = 20
+            print(f"Next question response: {next_question}")
             return jsonify(next_question)
         
     except Exception as e:
@@ -161,23 +167,27 @@ def generate_next_question(user_answers, question_number, body_location="general
             return question_data
         else:
             # Fallback if Gemini doesn't return proper JSON
-            return {
+            fallback_question = {
                 "question": "How severe is your pain on a scale of 1-10?",
                 "question_id": str(question_number),
                 "type": "multiple_choice",
                 "options": ["1-3 (Mild)", "4-6 (Moderate)", "7-10 (Severe)"],
                 "is_final": False
             }
+            print(f"Using fallback question: {fallback_question}")
+            return fallback_question
             
     except Exception as e:
         # Fallback question
-        return {
+        error_fallback = {
             "question": "How long have you been experiencing these symptoms?",
             "question_id": str(question_number),
             "type": "multiple_choice", 
             "options": ["Today", "Yesterday", "Few days", "Week", "Longer"],
             "is_final": False
         }
+        print(f"Exception in generate_next_question: {e}, using fallback: {error_fallback}")
+        return error_fallback
 
 def analyze_symptoms_with_gemini(user_answers):
     """
@@ -446,6 +456,27 @@ def analyze_symptoms_test(user_answers):
             "recommendation": "see_doctor",
             "advice": "Please consult with a healthcare provider for proper evaluation."
         }
+
+@questions_bp.route('/diagnose', methods=['POST'])
+def diagnose_symptoms():
+    """
+    Analyze symptoms and provide diagnosis
+    Expected input: {"answers": {"question1": "answer1", "question2": "answer2"}}
+    """
+    try:
+        data = request.json
+        user_answers = data.get("answers", {})
+        
+        if not user_answers:
+            return jsonify({"error": "No answers provided"}), 400
+        
+        # Call the existing diagnosis function
+        diagnosis_result = analyze_symptoms_with_gemini(user_answers)
+        
+        return jsonify(diagnosis_result)
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @questions_bp.route('/status', methods=['GET'])
 def get_session_status():

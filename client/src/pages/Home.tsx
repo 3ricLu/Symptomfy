@@ -74,7 +74,7 @@ const Home: React.FC = () => {
               under 2 minutes.
             </p>
             <Button
-              onClick={() => navigate("/diagnosis")}
+              onClick={() => navigate("/diagnosed")}
               className="bg-[#334155] hover:bg-[#1E40AF] text-white px-8 py-3 rounded-lg shadow-lg"
             >
               Get Diagnosed
