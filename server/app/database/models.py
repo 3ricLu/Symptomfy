@@ -33,6 +33,7 @@ class Patient(Base, BaseModel):
     address: str = sa.Column(sa.String, nullable=True)
     sex: str = sa.Column(sa.Enum("male", "female", "other", name="sex_enum"), nullable=True)
     age: int = sa.Column(sa.Integer, nullable=True)
+    familyDoctor: str = sa.Column(sa.String, nullable=True)
     __table_args__ = (
         sa.CheckConstraint('age >= 0 AND age <= 140', name='age_between_0_and_140'),
     )
