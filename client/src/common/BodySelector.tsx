@@ -1,11 +1,7 @@
 // components/BodySelector.tsx
 import React from "react";
 
-interface BodySelectorProps {
-  selected: string[];
-  onChange: (selected: string[]) => void;
-}
-
+// the regions we can click on
 const regions = [
   "head",
   "neck",
@@ -25,9 +21,24 @@ const regions = [
   "leftFoot",
   "rightFoot",
 ] as const;
+
 type Region = (typeof regions)[number];
 
-const BodySelector: React.FC<BodySelectorProps> = ({ selected, onChange }) => {
+export interface BodySelectorProps {
+  /** array of region ids (as strings) */
+  selected: string[];
+  /** callback when selection changes */
+  onChange: (selected: string[]) => void;
+  /** optional width in pixels (defaults to 192) */
+  width?: number;
+}
+
+const BodySelector: React.FC<BodySelectorProps> = ({
+  selected,
+  onChange,
+  width = 192,
+}) => {
+  // toggle a region in/out of the selected list
   const toggle = (id: Region) =>
     onChange(
       selected.includes(id)
@@ -35,13 +46,19 @@ const BodySelector: React.FC<BodySelectorProps> = ({ selected, onChange }) => {
         : [...selected, id]
     );
 
+  // highlight if selected
   const fillFor = (id: Region) =>
     selected.includes(id) ? "rgba(0,180,216,0.5)" : "transparent";
+
+  // keep the body in a 200×480 ratio
+  const height = (480 * width) / 200;
 
   return (
     <svg
       viewBox="0 0 200 480"
-      className="w-64 h-auto mx-auto"
+      width={width}
+      height={height}
+      className="mx-auto"
       style={{ cursor: "pointer" }}
     >
       {/* Head */}
