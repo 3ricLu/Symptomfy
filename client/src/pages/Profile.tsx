@@ -5,6 +5,7 @@ import { Separator } from "../components/ui/separator";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { ChevronDown } from "lucide-react";
 
 const Profile: React.FC = () => {
   const [age, setAge] = useState<string>("");
@@ -30,10 +31,10 @@ const Profile: React.FC = () => {
       })
       .then((res) => {
         const data = res.data;
-        // assume data has { age?: string, sex?: string, address?: string }
         setAge(data.age || "");
         setSex(data.sex || "");
         setAddress(data.address || "");
+        setDoctor(data.doctor || "");
       })
       .catch((err) => {
         console.error(err);
@@ -55,8 +56,8 @@ const Profile: React.FC = () => {
     axios
       .post(
         "/api/patient",
-        { age, sex, address },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { age, sex, address, doctor },
+        { headers: { Authorization: `${token}` } }
       )
       .then(() => {
         // optionally show a toast or confirmation
@@ -82,8 +83,11 @@ const Profile: React.FC = () => {
           {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
           <div className="space-y-4">
+            {/* Age Field */}
             <div>
-              <Label htmlFor="age">Age</Label>
+              <Label htmlFor="age" className="block mb-2">
+                Age
+              </Label>
               <Input
                 id="age"
                 type="number"
@@ -93,19 +97,37 @@ const Profile: React.FC = () => {
               />
             </div>
 
+            {/* Sex Field */}
             <div>
-              <Label htmlFor="sex">Sex</Label>
-              <Input
-                id="sex"
-                type="text"
-                placeholder="Enter your sex"
-                value={sex}
-                onChange={(e) => setSex(e.target.value)}
-              />
+              <Label htmlFor="sex" className="block mb-2">
+                Sex
+              </Label>
+              <div className="relative">
+                <select
+                  id="sex"
+                  value={sex}
+                  onChange={(e) => setSex(e.target.value)}
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm placeholder-gray-400 focus:border-[#2541B2] focus:ring-[#2541B2] focus:outline-none focus:ring-1"
+                >
+                  <option value="" disabled>
+                    Select…
+                  </option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
+                <ChevronDown
+                  className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2"
+                  size={20}
+                />
+              </div>
             </div>
 
+            {/* Address Field */}
             <div>
-              <Label htmlFor="address">Address</Label>
+              <Label htmlFor="address" className="block mb-2">
+                Address
+              </Label>
               <Input
                 id="address"
                 type="text"
@@ -115,10 +137,13 @@ const Profile: React.FC = () => {
               />
             </div>
 
+            {/* Doctor Field */}
             <div>
-              <Label htmlFor="doc">Doctor</Label>
+              <Label htmlFor="doctor" className="block mb-2">
+                Family Doctor
+              </Label>
               <Input
-                id="doc"
+                id="doctor"
                 type="text"
                 placeholder="Enter your family doctor"
                 value={doctor}
@@ -126,12 +151,13 @@ const Profile: React.FC = () => {
               />
             </div>
 
+            {/* Save Button */}
             <Button
               onClick={handleSave}
               className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white"
               disabled={saving}
             >
-              {saving ? "Saving..." : "Save Profile"}
+              {saving ? "Saving…" : "Save Profile"}
             </Button>
           </div>
         </CardContent>

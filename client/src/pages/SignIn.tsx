@@ -18,7 +18,7 @@ const SignIn: React.FC = () => {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [registerName, setRegisterName] = useState(""); // ← name state
+  const [registerName, setRegisterName] = useState("");
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,17 +28,17 @@ const SignIn: React.FC = () => {
 
   const isValidEmail = (e: string) => e.includes("@");
 
-  // Redirect if we already have a valid, unexpired token
+  // Redirect if token valid
   useEffect(() => {
     const token = sessionStorage.getItem("token");
     if (token) {
       try {
-        const { exp }: { exp: number } = jwtDecode(token);
+        const { exp }: { exp: number } = jwtDecode<{ exp: number }>(token);
         if (exp * 1000 > Date.now()) {
           navigate("/home");
         }
       } catch {
-        // invalid token, do nothing
+        // invalid token
       }
     }
   }, [navigate]);
@@ -56,17 +56,11 @@ const SignIn: React.FC = () => {
 
     try {
       const data = await login(email, password);
-
-      const raw = data["access-token"] || "";
-      const token = raw.toLowerCase().startsWith("bearer ")
-        ? raw.slice(7)
-        : raw;
-
+      const token = data["access-token"];
       sessionStorage.setItem("token", token);
       if (data["refresh-token"]) {
         sessionStorage.setItem("refreshToken", data["refresh-token"]);
       }
-
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Login failed. Please try again.");
@@ -94,16 +88,11 @@ const SignIn: React.FC = () => {
         registerPassword,
         registerName
       );
-      const raw = data["access-token"] || "";
-      const token = raw.toLowerCase().startsWith("bearer ")
-        ? raw.slice(7)
-        : raw;
-
+      const token = data["access-token"];
       sessionStorage.setItem("token", token);
       if (data["refresh-token"]) {
         sessionStorage.setItem("refreshToken", data["refresh-token"]);
       }
-
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
@@ -161,7 +150,6 @@ const SignIn: React.FC = () => {
           {/* Sign Up */}
           <TabsContent value="signup">
             <div className="space-y-4">
-              {/* Name field */}
               <div className="space-y-2">
                 <Label htmlFor="name">Name</Label>
                 <Input
