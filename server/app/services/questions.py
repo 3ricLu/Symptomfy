@@ -20,11 +20,12 @@ SCREENABLE_DISEASES = [
 def generate_question():
     """
     Generate next question dynamically using Gemini based on user's previous answers
-    Expected input: {"answers": {"question1": "answer1", "question2": "answer2"}}
+    Expected input: {"answers": {"question1": "answer1", "question2": "answer2"}, "body_location": "head"}
     """
     try:
         data = request.json
         user_answers = data.get("answers", {})
+        body_location = data.get("body_location", "general")
         
         # Check if we've reached the maximum number of questions (20)
         question_count = len(user_answers)
@@ -39,16 +40,30 @@ def generate_question():
                 "question_id": "initial_symptoms",
                 "type": "multiple_choice",
                 "options": ["Fever and chills", "Headache", "Sore throat", "Stomach pain", "Skin rash", "Chest pain", "Muscle pain", "Other"],
+                "is_final": False,
                 "question_number": 1,
                 "total_questions": 20
             })
         
         # Use Gemini to generate the next question dynamically
-        next_question = generate_next_question(user_answers, question_count + 1)
+        next_question = generate_next_question(user_answers, question_count + 1, body_location)
         
         if next_question.get("is_final"):
             # Time to analyze and provide diagnosis
-            return analyze_symptoms_with_gemini(user_answers)
+            diagnosis_result = analyze_symptoms_with_gemini(user_answers)
+            # If diagnosis_result is a Flask response, extract the JSON data
+            if hasattr(diagnosis_result, 'get_json'):
+                diagnosis_data = diagnosis_result.get_json()
+            else:
+                diagnosis_data = diagnosis_result
+            
+            # Return combined response with diagnosis
+            return jsonify({
+                "is_final": True,
+                "question_number": question_count + 1,
+                "total_questions": 20,
+                **diagnosis_data
+            })
         else:
             # Add question number and total to the response
             next_question["question_number"] = question_count + 1
@@ -58,14 +73,13 @@ def generate_question():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def generate_next_question(user_answers, question_number):
+def generate_next_question(user_answers, question_number, body_location="general"):
     """
     Use Gemini to generate the next question based on current answers
     """
     client = GeminiClient()
     
-    # Get body location if available, otherwise use symptoms to infer
-    body_location = user_answers.get("body_location", "general")
+    # Use provided body_location or try to infer from symptoms
     if body_location == "general" and "initial_symptoms" in user_answers:
         # Try to infer body location from symptoms
         symptoms = user_answers.get("initial_symptoms", "").lower()
@@ -142,6 +156,8 @@ def generate_next_question(user_answers, question_number):
         json_match = re.search(r'\{.*\}', response, re.DOTALL)
         if json_match:
             question_data = json.loads(json_match.group())
+            # Ensure is_final is boolean
+            question_data["is_final"] = bool(question_data.get("is_final", False))
             return question_data
         else:
             # Fallback if Gemini doesn't return proper JSON
@@ -227,23 +243,23 @@ def analyze_symptoms_with_gemini(user_answers):
         json_match = re.search(r'\{.*\}', response, re.DOTALL)
         if json_match:
             diagnosis_data = json.loads(json_match.group())
-            return jsonify(diagnosis_data)
+            return diagnosis_data
         else:
             # Fallback diagnosis
-            return jsonify({
+            return {
                 "diagnosis": "Unknown",
                 "confidence": "low",
                 "recommendation": "see_doctor",
                 "advice": "Please consult with a healthcare provider for proper evaluation."
-            })
+            }
             
     except Exception as e:
-        return jsonify({
+        return {
             "diagnosis": "Unknown",
             "confidence": "low", 
             "recommendation": "see_doctor",
             "advice": "Please consult with a healthcare provider for proper evaluation."
-        })
+        }
 
 def test_common_flu_flow():
     """
