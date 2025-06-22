@@ -28,6 +28,7 @@ fastparquet = "*"
 torch = {index = "pytorch"}
 transformers = "*"
 numpy = "<2"
+google-generativeai = "*"
 
 [dev-packages]
 

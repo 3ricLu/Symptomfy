@@ -9,6 +9,7 @@ class Settings(BaseSettings):
       
       secret_key: str
       issuer: str
+      gemini_api_key: str
       
       @property
       def database_url(self) -> str:
