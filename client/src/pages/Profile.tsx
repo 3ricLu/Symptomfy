@@ -1,3 +1,4 @@
+// src/pages/Profile.tsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Card, CardContent } from "../components/ui/card";
@@ -16,6 +17,9 @@ const Profile: React.FC = () => {
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
 
+  // Base URL for API
+  const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+
   // Fetch existing patient info
   useEffect(() => {
     const token = sessionStorage.getItem("token");
@@ -26,23 +30,25 @@ const Profile: React.FC = () => {
     }
 
     axios
-      .get("/api/patient", {
-        headers: { Authorization: `Bearer ${token}` },
+      .get(`${baseURL}/api/patient`, {
+        headers: { "Content-Type": "application/json", "access-token": token },
       })
       .then((res) => {
+        console.log(res.data);
         const data = res.data;
-        setAge(data.age || "");
-        setSex(data.sex || "");
-        setAddress(data.address || "");
-        setDoctor(data.doctor || "");
+        setAge(data.age ?? "");
+        setSex(data.sex ?? "");
+        setAddress(data.address ?? "");
+        setDoctor(data.doctor ?? "");
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Error loading profile:", err);
         setError("Failed to load profile");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [baseURL]);
 
+  // Save updated info
   const handleSave = () => {
     setSaving(true);
     setError("");
@@ -54,16 +60,13 @@ const Profile: React.FC = () => {
     }
 
     axios
-      .post(
-        "/api/patient",
+      .put(
+        `${baseURL}/api/patient`,
         { age, sex, address, doctor },
-        { headers: { Authorization: `${token}` } }
+        { headers: { "access-token": token } }
       )
-      .then(() => {
-        // optionally show a toast or confirmation
-      })
       .catch((err) => {
-        console.error(err);
+        console.error("Error saving profile:", err);
         setError("Failed to save profile");
       })
       .finally(() => setSaving(false));
@@ -107,7 +110,7 @@ const Profile: React.FC = () => {
                   id="sex"
                   value={sex}
                   onChange={(e) => setSex(e.target.value)}
-                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm placeholder-gray-400 focus:border-[#2541B2] focus:ring-[#2541B2] focus:outline-none focus:ring-1"
+                  className="block w-full appearance-none rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 shadow-sm focus:border-[#2541B2] focus:ring-[#2541B2] focus:outline-none"
                 >
                   <option value="" disabled>
                     Select…
@@ -137,7 +140,7 @@ const Profile: React.FC = () => {
               />
             </div>
 
-            {/* Doctor Field */}
+            {/* Family Doctor Field */}
             <div>
               <Label htmlFor="doctor" className="block mb-2">
                 Family Doctor

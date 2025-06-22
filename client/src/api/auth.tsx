@@ -4,9 +4,9 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 export const login = async (email: string, password: string) => {
   try {
-    const response = await axios.post(`${baseURL}/api/auth`, {
-      email,
-      password,
+    const response = await axios.post(`${baseURL}/api/user/auth`, {
+      email: email,
+      password: password,
     });
     return response.data;
   } catch (error: any) {
@@ -22,9 +22,9 @@ export const register = async (
 ) => {
   try {
     const response = await axios.post(`${baseURL}/api/user`, {
-      email,
-      password,
-      name,
+      email: email,
+      password: password,
+      name: name,
     });
     return response.data;
   } catch (error: any) {
