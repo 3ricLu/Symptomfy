@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify, make_response, Response, abort
 
 from ..database.database import SessionLocal
 from ..crud.users import UserCrud
+from ..crud.patients import PatientCrud
 from ..auth.user_auth import auth
 
 user_bp = Blueprint('user_bp', __name__)
@@ -25,6 +26,8 @@ def create_user(db, user_crud) -> Response:
     password = request.get_json().get("password")
     name = request.get_json().get("name")
     
+    patient_crud = PatientCrud(db)
+        
     if not (name and email and password):
         return make_response(jsonify({"message": "Missing required user information"}), 400)
     
@@ -34,7 +37,14 @@ def create_user(db, user_crud) -> Response:
     except Exception as e:
             return make_response(jsonify(str(e)), 400)
     
+    try:
+        patient_crud.create(user_id=User.id)
+    
+    except Exception as e:
+        return make_response(jsonify(str(e)), 500)
+        
     payload = auth(user_crud=user_crud, email=email, password=password)
+    
     
     response_data = {
     "message": f"User with ID {User.id} Successfully Created",
@@ -47,7 +57,8 @@ def create_user(db, user_crud) -> Response:
 def authenticate_user(db, user_crud) -> Response:
     email = request.get_json().get("email")
     password = request.get_json().get("password")
-    
+    print(True)
+    print(email, password)
     if not (email and password):
         return make_response(jsonify({"message": "Missing required user information"}), 400)
 

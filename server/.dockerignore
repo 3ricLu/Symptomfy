@@ -1,0 +1,12 @@
+# .dockerignore
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+model/*
+env/
+.env
+venv/
+Pipfile.lock
+tests/
+.git/
