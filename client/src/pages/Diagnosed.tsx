@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import BodySelector from "../common/BodySelector";
 import { Button } from "../components/ui/button";
 import {
@@ -7,34 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/card";
-import { Separator } from "../components/ui/separator";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "../components/ui/dialog";
 import { api } from "../lib/api";
-
-// TypeScript interfaces
-interface GeminiQuestion {
-  question: string;
-  question_id: string;
-  type: "yes/no" | "multiple_choice";
-  options: string[];
-  is_final: boolean;
-  question_number: number;
-  total_questions: number;
-}
-
-interface GeminiDiagnosis {
-  diagnosis: string;
-  confidence: "high" | "medium" | "low";
-  recommendation: "self_care" | "see_doctor";
-  advice: string;
-}
+import type { GeminiQuestion } from "../types";
 
 // Map body selector regions to backend expected values
 const mapBodyRegionToLocation = (regions: string[]): string => {
@@ -60,29 +35,39 @@ const mapBodyRegionToLocation = (regions: string[]): string => {
 };
 
 const Diagnosed: React.FC = () => {
+  const navigate = useNavigate();
   const [areas, setAreas] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState<GeminiQuestion | null>(
     null
   );
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [finished, setFinished] = useState(false);
-  const [diagnosis, setDiagnosis] = useState<GeminiDiagnosis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [recommendPhase, setRecommendPhase] = useState(false);
-  const [showBookingDialog, setShowBookingDialog] = useState(false);
-  const [geminiReply, setGeminiReply] = useState<string>("");
+  const [isGettingDiagnosis, setIsGettingDiagnosis] = useState(false);
 
-  // Booking state
-  const [selectedTime, setSelectedTime] = useState<string>("");
-  const availableTimes = [
-    "2025-06-23 09:00 AM",
-    "2025-06-23 10:00 AM",
-    "2025-06-23 11:00 AM",
-    "2025-06-23 02:00 PM",
-    "2025-06-23 03:00 PM",
-  ];
+  // Debug logging
+  console.log("Diagnosed component render - State:", {
+    started,
+    currentQuestion,
+    isGettingDiagnosis,
+    loading,
+    error,
+  });
+
+  // Additional debugging for currentQuestion structure
+  if (currentQuestion) {
+    console.log("Current question details:", {
+      hasQuestion: !!currentQuestion.question,
+      hasOptions: !!currentQuestion.options,
+      optionsType: typeof currentQuestion.options,
+      optionsLength: Array.isArray(currentQuestion.options)
+        ? currentQuestion.options.length
+        : "not array",
+      question: currentQuestion.question,
+      options: currentQuestion.options,
+    });
+  }
 
   // Start questionnaire by getting first question from backend
   const startQuestionnaire = async () => {
@@ -97,16 +82,19 @@ const Diagnosed: React.FC = () => {
       });
 
       const questionData = response.data;
+      console.log("Initial question data:", questionData);
       setCurrentQuestion(questionData);
       setStarted(true);
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to start questionnaire");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to start questionnaire";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle user answer and get next question
+  // Handle user answer and get next question or final diagnosis
   const handleAnswer = async (answer: string) => {
     if (!currentQuestion) return;
 
@@ -128,23 +116,48 @@ const Diagnosed: React.FC = () => {
       });
 
       const responseData = response.data;
+      console.log("Full API response data:", responseData);
 
-      if (responseData.is_final) {
-        // We have a diagnosis
-        setDiagnosis({
+      // Check if this is diagnosis data (has diagnosis, confidence, recommendation, advice)
+      const isDiagnosisData =
+        responseData.diagnosis &&
+        responseData.confidence &&
+        responseData.recommendation &&
+        responseData.advice;
+
+      if (responseData.is_final || isDiagnosisData) {
+        // We have reached the final question and have diagnosis data
+        console.log("Final question reached with diagnosis:", responseData);
+        setIsGettingDiagnosis(true);
+        setCurrentQuestion(null); // Clear current question to show diagnosis loading
+
+        // Extract the diagnosis data from the response
+        const diagnosisData = {
           diagnosis: responseData.diagnosis,
           confidence: responseData.confidence,
           recommendation: responseData.recommendation,
           advice: responseData.advice,
-        });
-        setFinished(true);
-        setCurrentQuestion(null);
-      } else {
-        // Next question
+        };
+
+        console.log("Extracted diagnosis data:", diagnosisData);
+
+        // Navigate directly to diagnosis page since we already have the data
+        setTimeout(() => {
+          navigate("/diagnosis", { state: diagnosisData });
+        }, 1000); // Small delay to show the "analyzing" state
+      } else if (responseData.question && responseData.options) {
+        // Next question - make sure it has the required question properties
+        console.log("Next question data:", responseData);
         setCurrentQuestion(responseData);
+      } else {
+        // Unexpected response format
+        console.error("Unexpected response format:", responseData);
+        setError("Received unexpected response format. Please try again.");
       }
-    } catch (err: any) {
-      setError(err.response?.data?.error || "Failed to get next question");
+    } catch (err: unknown) {
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to get next question";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -155,34 +168,9 @@ const Diagnosed: React.FC = () => {
     setStarted(false);
     setCurrentQuestion(null);
     setAnswers({});
-    setFinished(false);
-    setDiagnosis(null);
-    setRecommendPhase(false);
-    setShowBookingDialog(false);
-    setGeminiReply("");
-    setSelectedTime("");
     setLoading(false);
     setError(null);
-  };
-
-  const selectRecommendation = (choice: "doctor" | "er") => {
-    if (choice === "doctor") {
-      setRecommendPhase(true);
-    } else {
-      window.open(
-        "https://www.google.com/maps/search/emergency+room+near+me",
-        "_blank"
-      );
-    }
-  };
-
-  const handleNearestClinic = async (prompt: string) => {
-    try {
-      const { data } = await api.post("/api/gpt", { prompt });
-      setGeminiReply(data.output);
-    } catch {
-      setGeminiReply("Could not fetch clinic info at this time.");
-    }
+    setIsGettingDiagnosis(false);
   };
 
   // Progress bar component
@@ -258,8 +246,33 @@ const Diagnosed: React.FC = () => {
     );
   }
 
+  // Diagnosis loading phase
+  if (isGettingDiagnosis) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl">
+          <CardContent className="text-center py-8">
+            <ErrorDisplay />
+            <LoadingSpinner />
+            <h3 className="text-lg font-semibold mt-4 mb-2">
+              Analyzing Your Symptoms
+            </h3>
+            <p className="text-gray-600">
+              Our AI is reviewing your responses to provide a diagnosis...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // Question phase
-  if (currentQuestion && !finished) {
+  if (
+    currentQuestion &&
+    currentQuestion.question &&
+    currentQuestion.options &&
+    Array.isArray(currentQuestion.options)
+  ) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
         <Card className="w-full max-w-md shadow-lg rounded-xl mt-60">
@@ -270,17 +283,23 @@ const Diagnosed: React.FC = () => {
             </CardTitle>
             <ProgressBar />
             <div className="grid grid-cols-1 gap-3 mt-4">
-              {currentQuestion.options.map((option) => (
-                <Button
-                  key={option}
-                  variant="outline"
-                  disabled={loading}
-                  onClick={() => handleAnswer(option)}
-                  className="text-left justify-start"
-                >
-                  {option}
-                </Button>
-              ))}
+              {currentQuestion.options.length > 0 ? (
+                currentQuestion.options.map((option) => (
+                  <Button
+                    key={option}
+                    variant="outline"
+                    disabled={loading}
+                    onClick={() => handleAnswer(option)}
+                    className="text-left justify-start"
+                  >
+                    {option}
+                  </Button>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center">
+                  No options available
+                </p>
+              )}
             </div>
             {loading && <LoadingSpinner />}
           </CardContent>
@@ -289,141 +308,74 @@ const Diagnosed: React.FC = () => {
     );
   }
 
-  // Diagnosis complete phase
-  if (finished && diagnosis && !recommendPhase) {
+  // Loading phase - when currentQuestion exists but doesn't have all required data
+  if (currentQuestion && loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-        <Card className="max-w-md w-full shadow-lg rounded-xl">
-          <CardHeader>
-            <CardTitle>Diagnosis Complete</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 mb-6">
-              <div>
-                <h3 className="font-semibold text-lg">{diagnosis.diagnosis}</h3>
-                <p className="text-sm text-gray-600 capitalize">
-                  Confidence: {diagnosis.confidence}
-                </p>
-              </div>
-              <div>
-                <h4 className="font-medium mb-2">Recommendation:</h4>
-                <p className="text-gray-700">{diagnosis.advice}</p>
-              </div>
-            </div>
-            <Separator className="mb-6" />
-            <div className="space-y-3">
-              {diagnosis.recommendation === "see_doctor" ? (
-                <>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => selectRecommendation("er")}
-                  >
-                    Go to Emergency Care
-                  </Button>
-                  <Button
-                    className="w-full"
-                    onClick={() => selectRecommendation("doctor")}
-                  >
-                    Consult Family Doctor
-                  </Button>
-                </>
-              ) : (
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="text-green-800 font-medium">
-                    Self-care recommended
-                  </p>
-                  <p className="text-green-700 text-sm mt-1">
-                    Follow the advice above. If symptoms worsen, consult a
-                    healthcare provider.
-                  </p>
-                </div>
-              )}
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={handleRestart}
-              >
-                Start Over
-              </Button>
-            </div>
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl">
+          <CardContent className="text-center py-8">
+            <ErrorDisplay />
+            <LoadingSpinner />
+            <h3 className="text-lg font-semibold mt-4 mb-2">
+              Loading Question...
+            </h3>
+            <p className="text-gray-600">Getting your next question...</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  // Doctor options phase
+  // Fallback - should not reach here, but let's provide better debugging info
+  console.warn(
+    "Reached fallback component - this shouldn't happen. Debug info:",
+    {
+      started,
+      isGettingDiagnosis,
+      currentQuestion,
+      loading,
+      error,
+      hasQuestionData: currentQuestion
+        ? {
+            hasQuestion: !!currentQuestion.question,
+            hasOptions: !!currentQuestion.options,
+            optionsIsArray: Array.isArray(currentQuestion.options),
+          }
+        : null,
+    }
+  );
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
       <Card className="max-w-md w-full shadow-lg rounded-xl">
         <CardHeader>
-          <CardTitle>Doctor Options</CardTitle>
+          <CardTitle>Something went wrong</CardTitle>
         </CardHeader>
         <CardContent>
-          <Separator className="mb-4" />
-          <div className="space-y-4">
-            <Button
-              variant="ghost"
-              className="w-full"
-              onClick={() => setRecommendPhase(false)}
-            >
-              Back to Diagnosis
-            </Button>
-            <Dialog
-              open={showBookingDialog}
-              onOpenChange={(open) => {
-                setShowBookingDialog(open);
-                if (!open) setSelectedTime("");
-              }}
-            >
-              <DialogTrigger asChild>
-                <Button className="w-full">Book with Family Doctor</Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Schedule Appointment</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-2 mt-4">
-                  {availableTimes.map((time) => (
-                    <Button
-                      key={time}
-                      variant={selectedTime === time ? "default" : "outline"}
-                      className="w-full justify-start"
-                      onClick={() => setSelectedTime(time)}
-                    >
-                      {time}
-                    </Button>
-                  ))}
-                </div>
-                <DialogFooter className="mt-6">
-                  <Button
-                    className="w-full"
-                    disabled={!selectedTime}
-                    onClick={() => {
-                      console.log("Booked appointment at", selectedTime);
-                      setShowBookingDialog(false);
-                    }}
-                  >
-                    Confirm
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-            <Button
-              className="w-full"
-              onClick={() =>
-                handleNearestClinic("Find nearest clinic with low wait times.")
-              }
-            >
-              Find Nearest Clinic
-            </Button>
-          </div>
-          {geminiReply && (
-            <div className="mt-6 bg-white p-4 rounded-lg shadow-sm">
-              <h4 className="font-semibold mb-2">Clinic Info</h4>
-              <p className="text-gray-600">{geminiReply}</p>
-            </div>
+          <p className="text-gray-700 mb-4">
+            We encountered an unexpected error. Please try again.
+          </p>
+          <ErrorDisplay />
+          <Button onClick={handleRestart} className="w-full">
+            Start Over
+          </Button>
+          {import.meta.env.DEV && (
+            <details className="mt-4 text-xs">
+              <summary>Debug Info (Dev Only)</summary>
+              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
+                {JSON.stringify(
+                  {
+                    started,
+                    isGettingDiagnosis,
+                    currentQuestion,
+                    loading,
+                    error,
+                  },
+                  null,
+                  2
+                )}
+              </pre>
+            </details>
           )}
         </CardContent>
       </Card>

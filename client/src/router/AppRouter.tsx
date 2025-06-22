@@ -5,6 +5,7 @@ import Booking from "../pages/Booking";
 import SignIn from "../pages/SignIn";
 import NotFound from "../pages/NotFound";
 import Profile from "../pages/Profile";
+import DiagnosisPage from "../pages/DiagnosisPage";
 
 import Navigation from "../common/Navigation";
 import Diagnosed from "../pages/Diagnosed";
@@ -22,7 +23,8 @@ const AppRouter = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/diagnosis" element={<Diagnosed />} />
+        <Route path="/diagnosed" element={<Diagnosed />} />
+        <Route path="/diagnosis" element={<DiagnosisPage />} />
         <Route path="/booking" element={<Booking />} />
         <Route path="/signin" element={<SignIn />} />
         <Route path="/profile" element={<Profile />} />
