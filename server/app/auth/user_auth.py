@@ -13,7 +13,7 @@ def auth(user_crud: UserCrud, email: str, password: str):
         access_payload = _auth_payload(user, timedelta(minutes=15))
         refresh_payload = _auth_payload(user, timedelta(days=1))
         return {
-            "access-token": f"bearer {create_token(access_payload)}",
+            "access-token": create_token(access_payload),
             "refresh-token": create_token(refresh_payload),
             "token-type": "bearer"
         }
