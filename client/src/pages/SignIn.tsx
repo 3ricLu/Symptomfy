@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+// src/pages/SignIn.tsx
+import React, { useState, useEffect } from "react";
 import {
   Tabs,
   TabsContent,
@@ -10,14 +11,14 @@ import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { login, register } from "../api/auth";
 import { useNavigate } from "react-router-dom";
-
 import { jwtDecode } from "jwt-decode";
 
-const SignIn = () => {
+const SignIn: React.FC = () => {
   const navigate = useNavigate();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [registerName, setRegisterName] = useState(""); // ← name state
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,24 +26,26 @@ const SignIn = () => {
   const [isMatch, setIsMatch] = useState(true);
   const [error, setError] = useState("");
 
-  const isValidEmail = (email: string) => email.includes("@");
+  const isValidEmail = (e: string) => e.includes("@");
 
-  useEffect(() => {
-    setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
-  }, [registerPassword, confirmPassword]);
-
+  // Redirect if we already have a valid, unexpired token
   useEffect(() => {
     const token = sessionStorage.getItem("token");
     if (token) {
       try {
-        const decoded: { exp: number } = jwtDecode(token);
-        const now = Date.now() / 1000;
-        if (decoded.exp > now) {
+        const { exp }: { exp: number } = jwtDecode(token);
+        if (exp * 1000 > Date.now()) {
           navigate("/home");
         }
-      } catch (e) {}
+      } catch {
+        // invalid token, do nothing
+      }
     }
-  }, []);
+  }, [navigate]);
+
+  useEffect(() => {
+    setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
+  }, [registerPassword, confirmPassword]);
 
   const handleSignInClick = async () => {
     setError("");
@@ -50,9 +53,20 @@ const SignIn = () => {
       setError("Please enter a valid email.");
       return;
     }
+
     try {
       const data = await login(email, password);
-      sessionStorage.setItem("token", data.token);
+
+      const raw = data["access-token"] || "";
+      const token = raw.toLowerCase().startsWith("bearer ")
+        ? raw.slice(7)
+        : raw;
+
+      sessionStorage.setItem("token", token);
+      if (data["refresh-token"]) {
+        sessionStorage.setItem("refreshToken", data["refresh-token"]);
+      }
+
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Login failed. Please try again.");
@@ -61,6 +75,10 @@ const SignIn = () => {
 
   const handleSignUpClick = async () => {
     setError("");
+    if (!registerName.trim()) {
+      setError("Please enter your name.");
+      return;
+    }
     if (!isValidEmail(registerEmail)) {
       setError("Please enter a valid email.");
       return;
@@ -69,18 +87,30 @@ const SignIn = () => {
       setError("Passwords do not match.");
       return;
     }
+
     try {
-      const data = await register(registerEmail, registerPassword);
-      sessionStorage.setItem("token", data.token);
+      const data = await register(
+        registerEmail,
+        registerPassword,
+        registerName
+      );
+      const raw = data["access-token"] || "";
+      const token = raw.toLowerCase().startsWith("bearer ")
+        ? raw.slice(7)
+        : raw;
+
+      sessionStorage.setItem("token", token);
+      if (data["refresh-token"]) {
+        sessionStorage.setItem("refreshToken", data["refresh-token"]);
+      }
+
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
     }
   };
 
-  const resetError = () => {
-    setError("");
-  };
+  const resetError = () => setError("");
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-white text-[#1C2D5A] px-4">
@@ -95,7 +125,7 @@ const SignIn = () => {
             <TabsTrigger value="signup">Create Account</TabsTrigger>
           </TabsList>
 
-          {/* Sign In Form */}
+          {/* Sign In */}
           <TabsContent value="signin">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -118,9 +148,7 @@ const SignIn = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-
-              {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <Button
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white"
                 onClick={handleSignInClick}
@@ -130,9 +158,20 @@ const SignIn = () => {
             </div>
           </TabsContent>
 
-          {/* Sign Up Form */}
+          {/* Sign Up */}
           <TabsContent value="signup">
             <div className="space-y-4">
+              {/* Name field */}
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your name"
+                  value={registerName}
+                  onChange={(e) => setRegisterName(e.target.value)}
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="new-email">Email</Label>
                 <Input
@@ -163,16 +202,15 @@ const SignIn = () => {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                 />
                 {!isMatch && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-sm text-red-600">
                     Passwords do not match.
                   </p>
                 )}
               </div>
-
-              {error && <p className="text-sm text-red-600 mt-1">{error}</p>}
-
+              {error && <p className="text-sm text-red-600">{error}</p>}
               <Button
                 disabled={
+                  !registerName ||
                   !isMatch ||
                   !registerPassword ||
                   !confirmPassword ||
