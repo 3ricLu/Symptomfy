@@ -11,11 +11,11 @@ WORKDIR /app
 # Copy Pipfile and Pipfile.lock early to leverage caching
 COPY Pipfile* ./
 
-# Install Python dependencies
-RUN pipenv install --deploy --ignore-pipfile
+# Install Python dependencies (including dev packages so Alembic is available)
+RUN pipenv install --deploy --ignore-pipfile --dev
 
 # Copy the rest of your application code
 COPY . .
 
 # At runtime, first apply Alembic migrations, then start the app
-CMD ["sh", "-c", "pipenv run alembic upgrade head && pipenv run gunicorn -b :$PORT app.main:app"]
+CMD ["sh", "-c", "pipenv run alembic upgrade head && exec pipenv run gunicorn -b 0.0.0.0:$PORT app.main:app"]
