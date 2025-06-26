@@ -39,7 +39,7 @@ const Profile: React.FC = () => {
         setAge(data.age ?? "");
         setSex(data.sex ?? "");
         setAddress(data.address ?? "");
-        setDoctor(data.doctor ?? "");
+        setDoctor(data.familyDoctor ?? "");
       })
       .catch((err) => {
         console.error("Error loading profile:", err);
@@ -62,7 +62,7 @@ const Profile: React.FC = () => {
     axios
       .put(
         `${baseURL}/api/patient`,
-        { age, sex, address, doctor },
+        { age, sex, address, familyDoctor: doctor },
         { headers: { "access-token": token } }
       )
       .catch((err) => {
