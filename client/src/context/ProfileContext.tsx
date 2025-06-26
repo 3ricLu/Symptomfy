@@ -5,7 +5,7 @@ export interface Profile {
   sex?: string;
   address?: string;
   familyDoctor?: string;
-  // Add more fields as needed
+  isDoctor?: boolean;
 }
 
 interface ProfileContextType {

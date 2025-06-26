@@ -48,6 +48,23 @@ const SignIn: React.FC = () => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
   }, [registerPassword, confirmPassword]);
 
+  const checkDoctorStatus = async (token: string) => {
+    try {
+      const doctorRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/doctor/me`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "access-token": token,
+          },
+        }
+      );
+      return doctorRes.ok;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSignInClick = async () => {
     setError("");
     if (!isValidEmail(email)) {
@@ -73,10 +90,12 @@ const SignIn: React.FC = () => {
           },
         }
       );
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        setProfile(profileData);
-      }
+      let profileData = profileRes.ok ? await profileRes.json() : {};
+
+      // Check if user is a doctor
+      const isDoctor = await checkDoctorStatus(token);
+
+      setProfile({ ...profileData, isDoctor });
 
       navigate("/home");
     } catch (err: any) {
@@ -121,10 +140,12 @@ const SignIn: React.FC = () => {
           },
         }
       );
-      if (profileRes.ok) {
-        const profileData = await profileRes.json();
-        setProfile(profileData);
-      }
+      let profileData = profileRes.ok ? await profileRes.json() : {};
+
+      // Check if user is a doctor
+      const isDoctor = await checkDoctorStatus(token);
+
+      setProfile({ ...profileData, isDoctor });
 
       navigate("/home");
     } catch (err: any) {
