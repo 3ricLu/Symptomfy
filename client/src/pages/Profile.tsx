@@ -1,4 +1,3 @@
-// src/pages/Profile.tsx
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Card, CardContent } from "../components/ui/card";
@@ -7,21 +6,33 @@ import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ChevronDown } from "lucide-react";
+import { useProfile } from "../context/ProfileContext";
 
 const Profile: React.FC = () => {
-  const [age, setAge] = useState<string>("");
-  const [sex, setSex] = useState<string>("");
-  const [address, setAddress] = useState<string>("");
-  const [doctor, setDoctor] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(true);
+  const { profile, setProfile } = useProfile();
+  const [age, setAge] = useState<string>(profile?.age ?? "");
+  const [sex, setSex] = useState<string>(profile?.sex ?? "");
+  const [address, setAddress] = useState<string>(profile?.address ?? "");
+  const [doctor, setDoctor] = useState<string>(profile?.familyDoctor ?? "");
+  const [loading, setLoading] = useState<boolean>(!profile);
   const [error, setError] = useState<string>("");
   const [saving, setSaving] = useState<boolean>(false);
 
   // Base URL for API
   const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-  // Fetch existing patient info
+  // Fetch existing patient info if not in context
   useEffect(() => {
+    console.log(profile, "Profile context data");
+    if (profile) {
+      setAge(profile.age ?? "");
+      setSex(profile.sex ?? "");
+      setAddress(profile.address ?? "");
+      setDoctor(profile.familyDoctor ?? "");
+      setLoading(false);
+      return;
+    }
+
     const token = sessionStorage.getItem("token");
     if (!token) {
       setError("Not authenticated");
@@ -34,8 +45,8 @@ const Profile: React.FC = () => {
         headers: { "Content-Type": "application/json", "access-token": token },
       })
       .then((res) => {
-        console.log(res.data);
         const data = res.data;
+        setProfile(data);
         setAge(data.age ?? "");
         setSex(data.sex ?? "");
         setAddress(data.address ?? "");
@@ -46,7 +57,8 @@ const Profile: React.FC = () => {
         setError("Failed to load profile");
       })
       .finally(() => setLoading(false));
-  }, [baseURL]);
+    // eslint-disable-next-line
+  }, [baseURL, setProfile]);
 
   // Save updated info
   const handleSave = () => {
@@ -59,12 +71,15 @@ const Profile: React.FC = () => {
       return;
     }
 
+    const updatedProfile = { age, sex, address, familyDoctor: doctor };
+
     axios
-      .put(
-        `${baseURL}/api/patient`,
-        { age, sex, address, familyDoctor: doctor },
-        { headers: { "access-token": token } }
-      )
+      .put(`${baseURL}/api/patient`, updatedProfile, {
+        headers: { "access-token": token },
+      })
+      .then(() => {
+        setProfile(updatedProfile);
+      })
       .catch((err) => {
         console.error("Error saving profile:", err);
         setError("Failed to save profile");
