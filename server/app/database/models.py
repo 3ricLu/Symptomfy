@@ -24,6 +24,12 @@ class User(Base, BaseModel):
             "email": self.email,
             "name": self.name
         }
+    
+    def doctor_to_patient_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name
+        }
 
 class Patient(Base, BaseModel):
     __tablename__ = "patients"
@@ -33,7 +39,7 @@ class Patient(Base, BaseModel):
     address: str = sa.Column(sa.String, nullable=True)
     sex: str = sa.Column(sa.Enum("male", "female", "other", name="sex_enum"), nullable=True)
     age: int = sa.Column(sa.Integer, nullable=True)
-    familyDoctor: str = sa.Column(sa.String, nullable=True)
+    familyDoctor: int = sa.Column(sa.Integer, nullable=True)
     __table_args__ = (
         sa.CheckConstraint('age >= 0 AND age <= 140', name='age_between_0_and_140'),
     )
@@ -58,6 +64,12 @@ class Doctor(Base, BaseModel):
     user_id: int = sa.Column(sa.Integer, sa.ForeignKey('users.id'), nullable=False)
     clinic_id: int = sa.Column(sa.Integer, sa.ForeignKey('clinics.id'), nullable=True)
     specialty: str = sa.Column(sa.String(255), nullable=True)
+    
+    def to_patient_dict(self):
+        return {
+            "doctorId": self.id,
+            "doctorSpecialty": self.specialty 
+        }
 
 class Diagnosis(Base, BaseModel):
     __tablename__ = "diagnosis"

@@ -7,7 +7,7 @@ class DoctorCrud():
     def __init__(self, db: Session):
         self.db = db
     
-    def get_Doctor(self, **kwargs):
+    def get_doctor(self, **kwargs):
         return self.db.query(Doctor).filter_by(**kwargs).first()
     
     def create(self, *, user_id, clinic_id=None, specialty=None):

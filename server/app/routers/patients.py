@@ -4,66 +4,82 @@ from flask import Blueprint, request, jsonify, make_response, Response, abort
 from ..database.database import SessionLocal
 from ..crud.users import UserCrud
 from ..crud.patients import PatientCrud
-from ..auth.user_auth import auth
+from ..crud.doctors import DoctorCrud
 from ..utils.jwt_handler import validate_access_token
 
 patient_bp = Blueprint('patient_bp', __name__)
 
-def with_db_session_and_crud(func):
+
+# ✅ Unified decorator that provides all necessary CRUD instances
+def with_all_cruds(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
         db = SessionLocal()
         user_crud = UserCrud(db)
         patient_crud = PatientCrud(db)
+        doctor_crud = DoctorCrud(db)
         try:
-            return func(db, user_crud, patient_crud, *args, **kwargs)
+            return func(db, user_crud, patient_crud, doctor_crud, *args, **kwargs)
         finally:
             db.close()
     return wrapper
 
+
 @patient_bp.route('', methods=['GET'])
-@with_db_session_and_crud
-def get_patient(db, user_crud, patient_crud) -> Response:
+@with_all_cruds
+def get_patient(db, user_crud, patient_crud, doctor_crud) -> Response:
     access_token = request.headers.get("access-token")
     payload = validate_access_token(access_token)
-    
+
     user_id = int(payload.get("sub"))
-    
+
     try:
         patient = patient_crud.get_patient(user_id=user_id)
+
+        doctor_info = None
+        if patient.familyDoctor is not None:
+            print(patient.familyDoctor)
+            doctor = doctor_crud.get_doctor(id = patient.familyDoctor)
+            doctor_user = user_crud.get_user(id = doctor.user_id)
+            doctor_info = {
+                **doctor.to_patient_dict(),
+                **doctor_user.doctor_to_patient_dict()
+            }
+
+        response_data = {
+            "message": f"Found patient with user_id {user_id}",
+            **patient.to_dict(),
+            **({"family_doctor_info": doctor_info} if doctor_info else {})
+        }
+
+        return make_response(jsonify(response_data), 200)
+
     except Exception as e:
         return make_response(jsonify({
-            "message": f"Couldn't find patient with user_id {user_id}"
-            }), 404)
-    response_data = {
-        "message": f"Found patient with user_id {user_id}",
-        **patient.to_dict()
-    }
-    print(patient)
-    return make_response(jsonify(response_data), 200)
+            "message": f"Couldn't find patient with user_id {user_id}",
+            "error": str(e)
+        }), 404)
+
 
 @patient_bp.route('', methods=['PUT'])
-@with_db_session_and_crud
-def update_patient(db, user_crud, patient_crud) -> Response:
+@with_all_cruds
+def update_patient(db, user_crud, patient_crud, doctor_crud) -> Response:
     access_token = request.headers.get("access-token")
     payload = validate_access_token(access_token)
-    
+
     user_id = int(payload.get("sub"))
-    
-    sex = request.get_json().get("sex") or None
-    age = request.get_json().get("age") or None
-    address = request.get_json().get("address") or None
-    familyDoctor = request.get_json().get("familyDoctor") or None
-    
+
+    data = request.get_json() or {}
+
     kwargs = {}
-    if sex is not None:
-        kwargs["sex"] = sex
-    if age is not None:
-        kwargs["age"] = age
-    if address is not None:
-        kwargs["address"] = address
-    if familyDoctor is not None:
-        kwargs["familyDoctor"] = familyDoctor
+    if "sex" in data:
+        kwargs["sex"] = data["sex"]
+    if "age" in data:
+        kwargs["age"] = data["age"]
+    if "address" in data:
+        kwargs["address"] = data["address"]
+    if "familyDoctor" in data:
+        kwargs["familyDoctor"] = data["familyDoctor"]
 
     try:
         patient = patient_crud.update(user_id=user_id, **kwargs)
