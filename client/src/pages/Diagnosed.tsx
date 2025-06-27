@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { api } from "../lib/api";
-import type { GeminiQuestion } from "../types";
 
 // Map each selected region to a human-readable location string
 const mapBodyRegionsToLocations = (regions: string[]): string[] => {
@@ -61,28 +60,40 @@ const Diagnosed: React.FC = () => {
   const navigate = useNavigate();
   const [areas, setAreas] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState<GeminiQuestion | null>(
-    null
-  );
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGettingDiagnosis, setIsGettingDiagnosis] = useState(false);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [finalResponse, setFinalResponse] = useState<{
+    message: string;
+    response: string;
+  } | null>(null);
+
+  const getHeaders = () => {
+    const token = sessionStorage.getItem("token");
+    const sessionId = sessionStorage.getItem("sessionId");
+    return {
+      "Content-Type": "application/json",
+      ...(token ? { "access-token": token } : {}),
+      ...(sessionId ? { "X-Session-Id": sessionId } : {}),
+    };
+  };
 
   const startQuestionnaire = async () => {
     setLoading(true);
     setError(null);
-
     try {
       const bodyLocations = mapBodyRegionsToLocations(areas);
-      console.log(bodyLocations, "→ sending detailed locations");
-
-      const response = await api.post("/api/questions/generate", {
-        answers: {},
-        body_locations: bodyLocations,
-      });
-
-      setCurrentQuestion(response.data);
+      const response = await api.post(
+        "/api/questions/initial",
+        { answers: {}, body_locations: bodyLocations },
+        { headers: getHeaders() }
+      );
+      if (response.headers["x-session-id"]) {
+        sessionStorage.setItem("sessionId", response.headers["x-session-id"]);
+      }
+      setCurrentQuestion(response.data.response);
       setStarted(true);
     } catch (err: unknown) {
       setError(
@@ -99,14 +110,26 @@ const Diagnosed: React.FC = () => {
     setError(null);
 
     try {
-      const updated = { ...answers, [currentQuestion.question_id]: answer };
-      setAnswers(updated);
+      const nextCount = answeredCount + 1;
 
-      const bodyLocations = mapBodyRegionsToLocations(areas);
-      const { data } = await api.post("/api/questions/generate", {
-        answers: updated,
-        body_locations: bodyLocations,
-      });
+      // If we've reached 7 questions, fetch final diagnosis
+      if (nextCount >= 7) {
+        const { data } = await api.post(
+          "/api/questions/diagnos",
+          { answer },
+          { headers: getHeaders() }
+        );
+        setFinalResponse({ message: data.message, response: data.response });
+        setCurrentQuestion(null);
+        return;
+      }
+
+      // Otherwise, fetch next question
+      const { data } = await api.post(
+        "/api/questions/next",
+        { answer },
+        { headers: getHeaders() }
+      );
 
       const isDiag =
         data.diagnosis && data.confidence && data.recommendation && data.advice;
@@ -114,19 +137,18 @@ const Diagnosed: React.FC = () => {
       if (data.is_final || isDiag) {
         setIsGettingDiagnosis(true);
         setCurrentQuestion(null);
-
         const diagPayload = {
           diagnosis: data.diagnosis,
           confidence: data.confidence,
           recommendation: data.recommendation,
           advice: data.advice,
         };
-
         setTimeout(() => {
           navigate("/diagnosis", { state: diagPayload });
         }, 1000);
-      } else if (data.question && Array.isArray(data.options)) {
-        setCurrentQuestion(data);
+      } else if (data.response) {
+        setCurrentQuestion(data.response);
+        setAnsweredCount(nextCount);
       } else {
         setError("Unexpected response format. Please try again.");
       }
@@ -143,10 +165,12 @@ const Diagnosed: React.FC = () => {
     setAreas([]);
     setStarted(false);
     setCurrentQuestion(null);
-    setAnswers({});
     setLoading(false);
     setError(null);
     setIsGettingDiagnosis(false);
+    setAnsweredCount(0);
+    setFinalResponse(null);
+    sessionStorage.removeItem("sessionId");
   };
 
   const ProgressBar = () => {
@@ -154,7 +178,7 @@ const Diagnosed: React.FC = () => {
     const { total_questions, question_number } = currentQuestion;
     return (
       <div className="flex items-center mb-4">
-        {Array.from({ length: total_questions }).map((_, i) => (
+        {Array.from({ length: total_questions || 0 }).map((_, i) => (
           <div key={i} className="flex-1 mx-1">
             <div
               className={`h-2 rounded-full ${
@@ -187,6 +211,25 @@ const Diagnosed: React.FC = () => {
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
   );
+
+  // Show final API response after 7 questions
+  if (finalResponse) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle>{finalResponse.message}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-700 mb-4">{finalResponse.response}</p>
+            <Button onClick={handleRestart} className="w-full">
+              Start Over
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!started) {
     return (
@@ -231,38 +274,31 @@ const Diagnosed: React.FC = () => {
     );
   }
 
-  if (
-    currentQuestion &&
-    currentQuestion.question &&
-    Array.isArray(currentQuestion.options)
-  ) {
+  if (currentQuestion) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
         <Card className="w-full max-w-md shadow-lg rounded-xl mt-60">
           <CardContent>
             <ErrorDisplay />
-            <CardTitle className="mb-4 text-lg">
-              {currentQuestion.question}
-            </CardTitle>
+            <CardTitle className="mb-4 text-lg">{currentQuestion}</CardTitle>
             <ProgressBar />
-            <div className="grid grid-cols-1 gap-3 mt-4">
-              {currentQuestion.options.length ? (
-                currentQuestion.options.map((opt) => (
-                  <Button
-                    key={opt}
-                    variant="outline"
-                    disabled={loading}
-                    onClick={() => handleAnswer(opt)}
-                    className="text-left justify-start"
-                  >
-                    {opt}
-                  </Button>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center">
-                  No options available
-                </p>
-              )}
+            <div className="grid grid-cols-2 gap-4 mt-6">
+              <Button
+                variant="outline"
+                disabled={loading}
+                onClick={() => handleAnswer("yes")}
+                className="text-center justify-center"
+              >
+                Yes
+              </Button>
+              <Button
+                variant="outline"
+                disabled={loading}
+                onClick={() => handleAnswer("no")}
+                className="text-center justify-center"
+              >
+                No
+              </Button>
             </div>
             {loading && <LoadingSpinner />}
           </CardContent>
@@ -273,38 +309,7 @@ const Diagnosed: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <Card className="max-w-md w-full shadow-lg rounded-xl">
-        <CardHeader>
-          <CardTitle>Something went wrong</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-700 mb-4">
-            We encountered an unexpected error. Please try again.
-          </p>
-          <ErrorDisplay />
-          <Button onClick={handleRestart} className="w-full">
-            Start Over
-          </Button>
-          {import.meta.env.DEV && (
-            <details className="mt-4 text-xs">
-              <summary>Debug Info (Dev Only)</summary>
-              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                {JSON.stringify(
-                  {
-                    started,
-                    isGettingDiagnosis,
-                    currentQuestion,
-                    loading,
-                    error,
-                  },
-                  null,
-                  2
-                )}
-              </pre>
-            </details>
-          )}
-        </CardContent>
-      </Card>
+      ...
     </div>
   );
 };
