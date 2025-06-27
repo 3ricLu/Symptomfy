@@ -1,4 +1,3 @@
-// src/pages/SignIn.tsx
 import React, { useState, useEffect } from "react";
 import {
   Tabs,
@@ -12,6 +11,7 @@ import { Button } from "../components/ui/button";
 import { login, register } from "../api/auth";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
+import { useProfile } from "../context/ProfileContext";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +27,7 @@ const SignIn: React.FC = () => {
   const [error, setError] = useState("");
 
   const isValidEmail = (e: string) => e.includes("@");
+  const { setProfile } = useProfile();
 
   // Redirect if token valid
   useEffect(() => {
@@ -47,6 +48,23 @@ const SignIn: React.FC = () => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
   }, [registerPassword, confirmPassword]);
 
+  const checkDoctorStatus = async (token: string) => {
+    try {
+      const doctorRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/doctor/me`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "access-token": token,
+          },
+        }
+      );
+      return doctorRes.ok;
+    } catch {
+      return false;
+    }
+  };
+
   const handleSignInClick = async () => {
     setError("");
     if (!isValidEmail(email)) {
@@ -61,6 +79,24 @@ const SignIn: React.FC = () => {
       if (data["refresh-token"]) {
         sessionStorage.setItem("refreshToken", data["refresh-token"]);
       }
+
+      // Fetch profile info after login and save to context
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "access-token": token,
+          },
+        }
+      );
+      let profileData = profileRes.ok ? await profileRes.json() : {};
+
+      // Check if user is a doctor
+      const isDoctor = await checkDoctorStatus(token);
+
+      setProfile({ ...profileData, isDoctor });
+
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Login failed. Please try again.");
@@ -93,6 +129,24 @@ const SignIn: React.FC = () => {
       if (data["refresh-token"]) {
         sessionStorage.setItem("refreshToken", data["refresh-token"]);
       }
+
+      // Fetch profile info after registration and save to context
+      const profileRes = await fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            "access-token": token,
+          },
+        }
+      );
+      let profileData = profileRes.ok ? await profileRes.json() : {};
+
+      // Check if user is a doctor
+      const isDoctor = await checkDoctorStatus(token);
+
+      setProfile({ ...profileData, isDoctor });
+
       navigate("/home");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
