@@ -45,9 +45,6 @@ const Home: React.FC = () => {
         >
           <div className="flex items-center justify-center md:justify-start gap-3 mb-4">
             <img src={logo} alt="Symptomfy Logo" className="h-12 w-auto" />
-            <span className="font-bold text-3xl text-[#2541B2] tracking-tight">
-              Symptomfy
-            </span>
           </div>
           <h1 className="text-5xl font-extrabold mb-4 leading-tight">
             Quick, Smart Health Decisions

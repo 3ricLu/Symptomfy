@@ -1,7 +1,7 @@
 import React from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Home, ClipboardList, CalendarDays, User, LogOut } from "lucide-react";
-import logo from "../assets/images/logo.png";
+import logo_box from "../assets/images/logo_box.png";
 import { useProfile } from "../context/ProfileContext";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils"; // shadcn utility, if you have it
@@ -33,7 +33,7 @@ const Navigation: React.FC = () => {
       >
         {/* Logo */}
         <div className="flex items-center gap-2 mr-8">
-          <img src={logo} alt="Symptomfy Logo" className="h-10 w-auto" />
+          <img src={logo_box} alt="Symptomfy Logo" className="h-10 w-auto" />
         </div>
 
         {/* Links */}
