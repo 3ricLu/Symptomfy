@@ -19,6 +19,9 @@ class GeminiClient:
         response = await self.model.generate_content_async(prompt)
         return response.text
     
+    def apiKey(self):
+        return self.settings.gemini_api_key
+    
     def _mock_response(self, prompt: str) -> str:
         """Mock responses for development/testing"""
         if "medical screening assistant" in prompt.lower():

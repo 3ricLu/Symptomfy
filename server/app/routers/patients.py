@@ -10,7 +10,6 @@ from ..utils.jwt_handler import validate_access_token
 patient_bp = Blueprint('patient_bp', __name__)
 
 
-# ✅ Unified decorator that provides all necessary CRUD instances
 def with_all_cruds(func):
     @wraps(func)
     def wrapper(*args, **kwargs):

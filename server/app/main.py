@@ -8,10 +8,12 @@ from flask_cors import CORS
 
 from app.settings import settings
 from app.routers.users import user_bp
-from app.services.questions import questions_bp
+from app.routers.questions import questions_bp
 from app.routers.patients import patient_bp
+from app.sessionStorage.middleware import session_middleware
 
 app = Flask(__name__)
+session_middleware(app)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,5 +38,6 @@ api_bp.register_blueprint(questions_bp, url_prefix='/questions')
 app.register_blueprint(api_bp)
 
 if __name__ == "__main__":
+    
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port, debug=True)
