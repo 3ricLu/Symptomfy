@@ -11,27 +11,50 @@ import {
 import { api } from "../lib/api";
 import type { GeminiQuestion } from "../types";
 
-// Map body selector regions to backend expected values
-const mapBodyRegionToLocation = (regions: string[]): string => {
-  if (regions.length === 0) return "general";
+// Map each selected region to a human-readable location string
+const mapBodyRegionsToLocations = (regions: string[]): string[] => {
+  if (regions.length === 0) return ["General"];
 
-  const region = regions[0].toLowerCase();
-
-  // Map specific body parts to general areas
-  if (region.includes("head")) return "head";
-  if (region.includes("neck")) return "head";
-  if (region.includes("chest")) return "chest";
-  if (region.includes("abdomen") || region.includes("pelvis")) return "abdomen";
-  if (region.includes("back")) return "back";
-  if (region.includes("arm") || region.includes("hand")) return "arms";
-  if (
-    region.includes("thigh") ||
-    region.includes("shin") ||
-    region.includes("foot")
-  )
-    return "legs";
-
-  return "general";
+  return regions.map((region) => {
+    switch (region) {
+      case "head":
+        return "Head";
+      case "neck":
+        return "Neck";
+      case "chest":
+        return "Chest";
+      case "abdomen":
+        return "Abdomen";
+      case "pelvis":
+        return "Pelvis";
+      case "leftUpperArm":
+        return "Left Upper Arm";
+      case "rightUpperArm":
+        return "Right Upper Arm";
+      case "leftForearm":
+        return "Left Forearm";
+      case "rightForearm":
+        return "Right Forearm";
+      case "leftHand":
+        return "Left Hand";
+      case "rightHand":
+        return "Right Hand";
+      case "leftThigh":
+        return "Left Thigh";
+      case "rightThigh":
+        return "Right Thigh";
+      case "leftShin":
+        return "Left Shin";
+      case "rightShin":
+        return "Right Shin";
+      case "leftFoot":
+        return "Left Foot";
+      case "rightFoot":
+        return "Right Foot";
+      default:
+        return "General";
+    }
+  });
 };
 
 const Diagnosed: React.FC = () => {
@@ -46,118 +69,71 @@ const Diagnosed: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isGettingDiagnosis, setIsGettingDiagnosis] = useState(false);
 
-  // Debug logging
-  console.log("Diagnosed component render - State:", {
-    started,
-    currentQuestion,
-    isGettingDiagnosis,
-    loading,
-    error,
-  });
-
-  // Additional debugging for currentQuestion structure
-  if (currentQuestion) {
-    console.log("Current question details:", {
-      hasQuestion: !!currentQuestion.question,
-      hasOptions: !!currentQuestion.options,
-      optionsType: typeof currentQuestion.options,
-      optionsLength: Array.isArray(currentQuestion.options)
-        ? currentQuestion.options.length
-        : "not array",
-      question: currentQuestion.question,
-      options: currentQuestion.options,
-    });
-  }
-
-  // Start questionnaire by getting first question from backend
   const startQuestionnaire = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const bodyLocation = mapBodyRegionToLocation(areas);
+      const bodyLocations = mapBodyRegionsToLocations(areas);
+      console.log(bodyLocations, "→ sending detailed locations");
+
       const response = await api.post("/api/questions/generate", {
         answers: {},
-        body_location: bodyLocation,
+        body_locations: bodyLocations,
       });
 
-      const questionData = response.data;
-      console.log("Initial question data:", questionData);
-      setCurrentQuestion(questionData);
+      setCurrentQuestion(response.data);
       setStarted(true);
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to start questionnaire";
-      setError(errorMessage);
+      setError(
+        err instanceof Error ? err.message : "Failed to start questionnaire"
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle user answer and get next question or final diagnosis
   const handleAnswer = async (answer: string) => {
     if (!currentQuestion) return;
-
     setLoading(true);
     setError(null);
 
     try {
-      // Update answers with current response
-      const updatedAnswers = {
-        ...answers,
-        [currentQuestion.question_id]: answer,
-      };
-      setAnswers(updatedAnswers);
+      const updated = { ...answers, [currentQuestion.question_id]: answer };
+      setAnswers(updated);
 
-      const bodyLocation = mapBodyRegionToLocation(areas);
-      const response = await api.post("/api/questions/generate", {
-        answers: updatedAnswers,
-        body_location: bodyLocation,
+      const bodyLocations = mapBodyRegionsToLocations(areas);
+      const { data } = await api.post("/api/questions/generate", {
+        answers: updated,
+        body_locations: bodyLocations,
       });
 
-      const responseData = response.data;
-      console.log("Full API response data:", responseData);
+      const isDiag =
+        data.diagnosis && data.confidence && data.recommendation && data.advice;
 
-      // Check if this is diagnosis data (has diagnosis, confidence, recommendation, advice)
-      const isDiagnosisData =
-        responseData.diagnosis &&
-        responseData.confidence &&
-        responseData.recommendation &&
-        responseData.advice;
-
-      if (responseData.is_final || isDiagnosisData) {
-        // We have reached the final question and have diagnosis data
-        console.log("Final question reached with diagnosis:", responseData);
+      if (data.is_final || isDiag) {
         setIsGettingDiagnosis(true);
-        setCurrentQuestion(null); // Clear current question to show diagnosis loading
+        setCurrentQuestion(null);
 
-        // Extract the diagnosis data from the response
-        const diagnosisData = {
-          diagnosis: responseData.diagnosis,
-          confidence: responseData.confidence,
-          recommendation: responseData.recommendation,
-          advice: responseData.advice,
+        const diagPayload = {
+          diagnosis: data.diagnosis,
+          confidence: data.confidence,
+          recommendation: data.recommendation,
+          advice: data.advice,
         };
 
-        console.log("Extracted diagnosis data:", diagnosisData);
-
-        // Navigate directly to diagnosis page since we already have the data
         setTimeout(() => {
-          navigate("/diagnosis", { state: diagnosisData });
-        }, 1000); // Small delay to show the "analyzing" state
-      } else if (responseData.question && responseData.options) {
-        // Next question - make sure it has the required question properties
-        console.log("Next question data:", responseData);
-        setCurrentQuestion(responseData);
+          navigate("/diagnosis", { state: diagPayload });
+        }, 1000);
+      } else if (data.question && Array.isArray(data.options)) {
+        setCurrentQuestion(data);
       } else {
-        // Unexpected response format
-        console.error("Unexpected response format:", responseData);
-        setError("Received unexpected response format. Please try again.");
+        setError("Unexpected response format. Please try again.");
       }
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to get next question";
-      setError(errorMessage);
+      setError(
+        err instanceof Error ? err.message : "Failed to get next question"
+      );
     } finally {
       setLoading(false);
     }
@@ -173,20 +149,16 @@ const Diagnosed: React.FC = () => {
     setIsGettingDiagnosis(false);
   };
 
-  // Progress bar component
   const ProgressBar = () => {
     if (!currentQuestion) return null;
-
-    const totalQuestions = currentQuestion.total_questions;
-    const currentQuestionNum = currentQuestion.question_number;
-
+    const { total_questions, question_number } = currentQuestion;
     return (
       <div className="flex items-center mb-4">
-        {Array.from({ length: totalQuestions }, (_, idx) => (
-          <div key={idx} className="flex-1 mx-1">
+        {Array.from({ length: total_questions }).map((_, i) => (
+          <div key={i} className="flex-1 mx-1">
             <div
               className={`h-2 rounded-full ${
-                idx < currentQuestionNum ? "bg-blue-600" : "bg-gray-200"
+                i < question_number ? "bg-blue-600" : "bg-gray-200"
               }`}
             />
           </div>
@@ -195,11 +167,8 @@ const Diagnosed: React.FC = () => {
     );
   };
 
-  // Error display component
-  const ErrorDisplay = () => {
-    if (!error) return null;
-
-    return (
+  const ErrorDisplay = () =>
+    error ? (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
         <p className="text-red-700">{error}</p>
         <Button
@@ -211,17 +180,14 @@ const Diagnosed: React.FC = () => {
           Dismiss
         </Button>
       </div>
-    );
-  };
+    ) : null;
 
-  // Loading spinner component
   const LoadingSpinner = () => (
     <div className="flex justify-center items-center p-4">
       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
     </div>
   );
 
-  // Body area selection phase
   if (!started) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
@@ -246,7 +212,6 @@ const Diagnosed: React.FC = () => {
     );
   }
 
-  // Diagnosis loading phase
   if (isGettingDiagnosis) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
@@ -266,11 +231,9 @@ const Diagnosed: React.FC = () => {
     );
   }
 
-  // Question phase
   if (
     currentQuestion &&
     currentQuestion.question &&
-    currentQuestion.options &&
     Array.isArray(currentQuestion.options)
   ) {
     return (
@@ -283,16 +246,16 @@ const Diagnosed: React.FC = () => {
             </CardTitle>
             <ProgressBar />
             <div className="grid grid-cols-1 gap-3 mt-4">
-              {currentQuestion.options.length > 0 ? (
-                currentQuestion.options.map((option) => (
+              {currentQuestion.options.length ? (
+                currentQuestion.options.map((opt) => (
                   <Button
-                    key={option}
+                    key={opt}
                     variant="outline"
                     disabled={loading}
-                    onClick={() => handleAnswer(option)}
+                    onClick={() => handleAnswer(opt)}
                     className="text-left justify-start"
                   >
-                    {option}
+                    {opt}
                   </Button>
                 ))
               ) : (
@@ -307,43 +270,6 @@ const Diagnosed: React.FC = () => {
       </div>
     );
   }
-
-  // Loading phase - when currentQuestion exists but doesn't have all required data
-  if (currentQuestion && loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
-        <Card className="w-full max-w-md shadow-lg rounded-xl">
-          <CardContent className="text-center py-8">
-            <ErrorDisplay />
-            <LoadingSpinner />
-            <h3 className="text-lg font-semibold mt-4 mb-2">
-              Loading Question...
-            </h3>
-            <p className="text-gray-600">Getting your next question...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Fallback - should not reach here, but let's provide better debugging info
-  console.warn(
-    "Reached fallback component - this shouldn't happen. Debug info:",
-    {
-      started,
-      isGettingDiagnosis,
-      currentQuestion,
-      loading,
-      error,
-      hasQuestionData: currentQuestion
-        ? {
-            hasQuestion: !!currentQuestion.question,
-            hasOptions: !!currentQuestion.options,
-            optionsIsArray: Array.isArray(currentQuestion.options),
-          }
-        : null,
-    }
-  );
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
