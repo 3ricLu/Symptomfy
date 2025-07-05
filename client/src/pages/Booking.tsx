@@ -1,22 +1,6 @@
+// src/pages/Booking.tsx
 import React, { useState, useEffect } from "react";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
-import type { Event as RbcEvent } from "react-big-calendar";
-import { format } from "date-fns/format";
-import { parse } from "date-fns/parse";
-import { startOfWeek } from "date-fns/startOfWeek";
-import { getDay } from "date-fns/getDay";
-import { enUS } from "date-fns/locale";
-import "react-big-calendar/lib/css/react-big-calendar.css";
-
-// date-fns localizer setup
-const locales = { "en-US": enUS };
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+import { Calendar } from "../components/ui/calendar";
 
 interface BookingRecord {
   id: string;
@@ -25,7 +9,6 @@ interface BookingRecord {
   endTime: string; // ISO string
 }
 
-// Mock data
 const mockBookings: BookingRecord[] = [
   {
     id: "1",
@@ -48,24 +31,23 @@ const mockBookings: BookingRecord[] = [
 ];
 
 const Booking: React.FC = () => {
-  const [events, setEvents] = useState<RbcEvent[]>([]);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching from backend
-    const loadEvents = async () => {
-      const evts: RbcEvent[] = mockBookings.map((b) => ({
-        id: b.id,
-        title: `Dr. ${b.doctorName}`,
-        start: new Date(b.startTime),
-        end: new Date(b.endTime),
-      }));
-      setEvents(evts);
-      setLoading(false);
-    };
-
-    loadEvents();
+    // fetch or load your bookings
+    setBookings(mockBookings);
+    setLoading(false);
   }, []);
+
+  // Dates to highlight
+  const highlighted = bookings.map((b) => new Date(b.startTime));
+
+  // Filter bookings for the selected day
+  const todays = bookings.filter(
+    (b) => new Date(b.startTime).toDateString() === selectedDate.toDateString()
+  );
 
   if (loading) {
     return (
@@ -80,16 +62,46 @@ const Booking: React.FC = () => {
       <h1 className="text-2xl font-semibold text-[#1C2D5A] mb-4 pt-16">
         My Appointments
       </h1>
+
       <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 650 }}
-        views={["month", "week", "day"]}
-        defaultView="month"
-        popup
+        mode="single"
+        selected={selectedDate}
+        onSelect={(date) => date && setSelectedDate(date)}
+        modifiers={{ highlighted }}
+        modifiersClassNames={{ highlighted: "bg-blue-200 rounded-full" }}
+        className="w-full max-w-md mx-auto"
       />
+
+      <div className="mt-6 max-w-md mx-auto">
+        <h2 className="text-lg font-medium">
+          Appointments on {selectedDate.toLocaleDateString()}
+        </h2>
+        {todays.length > 0 ? (
+          <ul className="mt-2 space-y-2">
+            {todays.map((b) => (
+              <li
+                key={b.id}
+                className="p-3 border rounded shadow-sm flex justify-between"
+              >
+                <span>Dr. {b.doctorName}</span>
+                <span>
+                  {new Date(b.startTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                  –{" "}
+                  {new Date(b.endTime).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-gray-500">No appointments.</p>
+        )}
+      </div>
     </div>
   );
 };
