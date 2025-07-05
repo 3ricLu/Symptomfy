@@ -9,12 +9,10 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { api } from "../lib/api";
-import type { GeminiQuestion } from "../types";
 
 // Map each selected region to a human-readable location string
 const mapBodyRegionsToLocations = (regions: string[]): string[] => {
   if (regions.length === 0) return ["General"];
-
   return regions.map((region) => {
     switch (region) {
       case "head":
@@ -59,102 +57,130 @@ const mapBodyRegionsToLocations = (regions: string[]): string[] => {
 
 const Diagnosed: React.FC = () => {
   const navigate = useNavigate();
+
+  // --- State ---
   const [areas, setAreas] = useState<string[]>([]);
   const [started, setStarted] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState<GeminiQuestion | null>(
-    null
-  );
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [currentQuestion, setCurrentQuestion] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isGettingDiagnosis, setIsGettingDiagnosis] = useState(false);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [finalResponse, setFinalResponse] = useState<{
+    message: string;
+    response: string;
+  } | null>(null);
+  const [answerInput, setAnswerInput] = useState<string>("");
 
+  // --- Helpers ---
+  const getHeaders = () => {
+    const token = sessionStorage.getItem("token");
+    const sessionId = sessionStorage.getItem("sessionId");
+    return {
+      "Content-Type": "application/json",
+      ...(token && { "access-token": token }),
+      ...(sessionId && { "X-Session-Id": sessionId }),
+    };
+  };
+
+  // Start the questionnaire
   const startQuestionnaire = async () => {
     setLoading(true);
     setError(null);
-
     try {
-      const bodyLocations = mapBodyRegionsToLocations(areas);
-      console.log(bodyLocations, "→ sending detailed locations");
-
-      const response = await api.post("/api/questions/generate", {
-        answers: {},
-        body_locations: bodyLocations,
-      });
-
-      setCurrentQuestion(response.data);
-      setStarted(true);
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to start questionnaire"
+      const body_locations = mapBodyRegionsToLocations(areas);
+      const resp = await api.post(
+        "/api/questions/initial",
+        { answers: {}, body_locations },
+        { headers: getHeaders() }
       );
+      const sid = resp.headers["x-session-id"];
+      if (sid) sessionStorage.setItem("sessionId", sid);
+      setCurrentQuestion(resp.data.response);
+      setStarted(true);
+    } catch (e: any) {
+      setError(e.message || "Failed to start");
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle both yes/no or free-form answers
   const handleAnswer = async (answer: string) => {
     if (!currentQuestion) return;
     setLoading(true);
     setError(null);
 
     try {
-      const updated = { ...answers, [currentQuestion.question_id]: answer };
-      setAnswers(updated);
+      const nextCount = answeredCount + 1;
 
-      const bodyLocations = mapBodyRegionsToLocations(areas);
-      const { data } = await api.post("/api/questions/generate", {
-        answers: updated,
-        body_locations: bodyLocations,
-      });
+      // After 7 answers, hit final endpoint
+      if (nextCount >= 7) {
+        const { data } = await api.post(
+          "/api/questions/diagnos",
+          { answer },
+          { headers: getHeaders() }
+        );
+        setFinalResponse({ message: data.message, response: data.response });
+        setCurrentQuestion(null);
+        return;
+      }
 
-      const isDiag =
+      // Otherwise get next question
+      const { data } = await api.post(
+        "/api/questions/next",
+        { answer },
+        { headers: getHeaders() }
+      );
+
+      const isDiagPayload =
         data.diagnosis && data.confidence && data.recommendation && data.advice;
 
-      if (data.is_final || isDiag) {
+      if (data.is_final || isDiagPayload) {
         setIsGettingDiagnosis(true);
         setCurrentQuestion(null);
-
-        const diagPayload = {
+        const payload = {
           diagnosis: data.diagnosis,
           confidence: data.confidence,
           recommendation: data.recommendation,
           advice: data.advice,
         };
-
-        setTimeout(() => {
-          navigate("/diagnosis", { state: diagPayload });
-        }, 1000);
-      } else if (data.question && Array.isArray(data.options)) {
-        setCurrentQuestion(data);
+        setTimeout(() => navigate("/diagnosis", { state: payload }), 800);
+      } else if (data.response) {
+        setCurrentQuestion(data.response);
+        setAnsweredCount(nextCount);
       } else {
-        setError("Unexpected response format. Please try again.");
+        setError("Unexpected response structure");
       }
-    } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to get next question"
-      );
+    } catch (e: any) {
+      setError(e.message || "Failed to continue");
     } finally {
       setLoading(false);
+      setAnswerInput("");
     }
   };
 
+  // Reset everything
   const handleRestart = () => {
+    sessionStorage.removeItem("sessionId");
     setAreas([]);
     setStarted(false);
     setCurrentQuestion(null);
-    setAnswers({});
     setLoading(false);
     setError(null);
     setIsGettingDiagnosis(false);
+    setAnsweredCount(0);
+    setFinalResponse(null);
+    setAnswerInput("");
   };
 
+  // --- UI Components ---
   const ProgressBar = () => {
     if (!currentQuestion) return null;
     const { total_questions, question_number } = currentQuestion;
     return (
       <div className="flex items-center mb-4">
-        {Array.from({ length: total_questions }).map((_, i) => (
+        {Array.from({ length: total_questions || 0 }).map((_, i) => (
           <div key={i} className="flex-1 mx-1">
             <div
               className={`h-2 rounded-full ${
@@ -167,27 +193,48 @@ const Diagnosed: React.FC = () => {
     );
   };
 
-  const ErrorDisplay = () =>
-    error ? (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-        <p className="text-red-700">{error}</p>
-        <Button
-          variant="outline"
-          size="sm"
-          className="mt-2"
-          onClick={() => setError(null)}
-        >
-          Dismiss
-        </Button>
-      </div>
-    ) : null;
-
-  const LoadingSpinner = () => (
-    <div className="flex justify-center items-center p-4">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+  const ErrorDisplay = error && (
+    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+      <p className="text-red-700">{error}</p>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setError(null)}
+        className="mt-2"
+      >
+        Dismiss
+      </Button>
     </div>
   );
 
+  const LoadingSpinner = () => (
+    <div className="flex justify-center p-4">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+    </div>
+  );
+
+  // --- Render ---
+
+  // 1) Final response screen
+  if (finalResponse) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl">
+          <CardHeader>
+            <CardTitle>{finalResponse.message}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4 text-gray-700">{finalResponse.response}</p>
+            <Button onClick={handleRestart} className="w-full">
+              Start Over
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // 2) Before starting
   if (!started) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-6">
@@ -196,12 +243,12 @@ const Diagnosed: React.FC = () => {
             <CardTitle>Select Areas of Discomfort</CardTitle>
           </CardHeader>
           <CardContent>
-            <ErrorDisplay />
+            {ErrorDisplay}
             <BodySelector selected={areas} onChange={setAreas} />
             <Button
-              disabled={!areas.length || loading}
-              className="mt-6 w-full"
               onClick={startQuestionnaire}
+              disabled={loading || areas.length === 0}
+              className="mt-6 w-full"
             >
               {loading ? "Starting..." : "Continue"}
             </Button>
@@ -212,58 +259,69 @@ const Diagnosed: React.FC = () => {
     );
   }
 
+  // 3) Waiting for AI → show spinner
   if (isGettingDiagnosis) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
-        <Card className="w-full max-w-md shadow-lg rounded-xl">
-          <CardContent className="text-center py-8">
-            <ErrorDisplay />
-            <LoadingSpinner />
-            <h3 className="text-lg font-semibold mt-4 mb-2">
-              Analyzing Your Symptoms
-            </h3>
-            <p className="text-gray-600">
-              Our AI is reviewing your responses to provide a diagnosis...
-            </p>
-          </CardContent>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl text-center p-8">
+          {ErrorDisplay}
+          <LoadingSpinner />
+          <h3 className="mt-4 mb-2 text-lg font-semibold">
+            Analyzing Your Symptoms
+          </h3>
+          <p className="text-gray-600">Our AI is reviewing your responses...</p>
         </Card>
       </div>
     );
   }
 
-  if (
-    currentQuestion &&
-    currentQuestion.question &&
-    Array.isArray(currentQuestion.options)
-  ) {
+  // 4) Question & answer step
+  if (currentQuestion) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
-        <Card className="w-full max-w-md shadow-lg rounded-xl mt-60">
+      <div className="min-h-screen flex flex-col items-center bg-gray-50 p-6">
+        <Card className="w-full max-w-md shadow-lg rounded-xl mt-40">
           <CardContent>
-            <ErrorDisplay />
-            <CardTitle className="mb-4 text-lg">
-              {currentQuestion.question}
-            </CardTitle>
+            {ErrorDisplay}
+            <CardTitle className="mb-4 text-lg">{currentQuestion}</CardTitle>
             <ProgressBar />
-            <div className="grid grid-cols-1 gap-3 mt-4">
-              {currentQuestion.options.length ? (
-                currentQuestion.options.map((opt) => (
-                  <Button
-                    key={opt}
-                    variant="outline"
-                    disabled={loading}
-                    onClick={() => handleAnswer(opt)}
-                    className="text-left justify-start"
-                  >
-                    {opt}
-                  </Button>
-                ))
-              ) : (
-                <p className="text-gray-500 text-center">
-                  No options available
-                </p>
-              )}
+
+            {/* Yes / No buttons */}
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => handleAnswer("yes")}
+                disabled={loading}
+              >
+                Yes
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleAnswer("no")}
+                disabled={loading}
+              >
+                No
+              </Button>
             </div>
+
+            {/* Free-form answer */}
+            <div className="mt-6">
+              <textarea
+                rows={3}
+                value={answerInput}
+                onChange={(e) => setAnswerInput(e.target.value)}
+                placeholder="Or type any additional info..."
+                disabled={loading}
+                className="w-full p-2 border rounded-md focus:ring focus:outline-none"
+              />
+              <Button
+                onClick={() => handleAnswer(answerInput.trim())}
+                disabled={loading || !answerInput.trim()}
+                className="mt-3 w-full"
+              >
+                {loading ? "Submitting..." : "Submit Text"}
+              </Button>
+            </div>
+
             {loading && <LoadingSpinner />}
           </CardContent>
         </Card>
@@ -271,40 +329,10 @@ const Diagnosed: React.FC = () => {
     );
   }
 
+  // 5) Fallback
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-6">
-      <Card className="max-w-md w-full shadow-lg rounded-xl">
-        <CardHeader>
-          <CardTitle>Something went wrong</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-700 mb-4">
-            We encountered an unexpected error. Please try again.
-          </p>
-          <ErrorDisplay />
-          <Button onClick={handleRestart} className="w-full">
-            Start Over
-          </Button>
-          {import.meta.env.DEV && (
-            <details className="mt-4 text-xs">
-              <summary>Debug Info (Dev Only)</summary>
-              <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-                {JSON.stringify(
-                  {
-                    started,
-                    isGettingDiagnosis,
-                    currentQuestion,
-                    loading,
-                    error,
-                  },
-                  null,
-                  2
-                )}
-              </pre>
-            </details>
-          )}
-        </CardContent>
-      </Card>
+      <Button onClick={handleRestart}>Restart</Button>
     </div>
   );
 };
