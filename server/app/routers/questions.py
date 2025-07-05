@@ -38,11 +38,12 @@ def initialQuestion():
     
     Please make the questions clear and concise.
 
-    Initial Pain Points: {g.session_data["initialPainPoints"]}
+    Initial areas of concern: {g.session_data["initialPainPoints"]}
     Previous Answers: {g.session_data["answers"]}
     Questions Already Asked: {g.session_data["questionsAsked"]}
 
-    Ask one new yes/no question that helps clarify the user's condition.
+    DO NOT ask a question that cannot be a yes or no answer, no question you ask can be multi-faceted in anyway. It must be a clear yes or no question.
+
     """
     
     response = asyncio.run(client.generate_response(prompt))
@@ -82,10 +83,10 @@ def nextQuestion():
     
     Please do not repeat a question that has already been asked.
     Also please look for the next question that may best address the currently known set of questions and answers as well as initial pain points.
-    Initial Pain Points: {g.session_data["initialPainPoints"]}
+    Initial areas of concern: {g.session_data["initialPainPoints"]}
     Previously asked questions and answers of the form (question, answer): {paired}
 
-    Ask one new yes/no question that helps clarify the user's condition.
+    DO NOT ask a question that cannot be a yes or no answer, no question you ask can be multi-faceted in anyway. It must be a clear yes or no question.
     """
     
     response = asyncio.run(client.generate_response(prompt))
@@ -125,7 +126,7 @@ def verdict():
     - Avoid asking further questions
     - Do not repeat or restate the input
 
-    Initial Pain Points: {g.session_data["initialPainPoints"]}
+    Initial areas of concern: {g.session_data["initialPainPoints"]}
 
     Question and Answer History:
     {paired}

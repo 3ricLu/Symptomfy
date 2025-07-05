@@ -10,7 +10,7 @@ from ..utils.jwt_handler import create_token, validate_access_token
 def auth(user_crud: UserCrud, email: str, password: str):
     user = user_crud.get_user(email=email)
     if user and verify_password(password=password, hashed_password=user.hashedPassword):
-        access_payload = _auth_payload(user, timedelta(minutes=15))
+        access_payload = _auth_payload(user, timedelta(minutes=30))
         refresh_payload = _auth_payload(user, timedelta(days=1))
         return {
             "access-token": create_token(access_payload),
