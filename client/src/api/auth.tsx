@@ -9,7 +9,7 @@ export const login = async (email: string, password: string) => {
       password: password,
     });
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login failed:", error);
     throw error;
   }
@@ -27,7 +27,7 @@ export const register = async (
       name: name,
     });
     return response.data;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Registration failed:", error);
     throw error;
   }
