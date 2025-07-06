@@ -13,13 +13,9 @@ import Diagnosed from "../pages/Diagnosed";
 const AppRouter = () => {
   return (
     <BrowserRouter>
-      {/* Fixed top navigation bar */}
       <div className="fixed top-0 left-0 w-full z-50">
         <Navigation />
       </div>
-
-      {/* Routed content */}
-
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
