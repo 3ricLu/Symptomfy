@@ -1,5 +1,8 @@
-import React, { useState, useEffect } from "react";
+// Booking.tsx
+import { useState, useEffect } from "react";
 import { Calendar } from "../components/ui/calendar";
+import UpcomingPanel from "../components/booking/UpcomingPanel";
+import DetailsPanel from "../components/booking/DetailsPanel";
 
 interface BookingRecord {
   id: string;
@@ -151,7 +154,6 @@ export default function Booking() {
 
   const now = new Date();
 
-  // prepare date lists
   const bookingDates = bookings.map((b) => new Date(b.startTime));
   const diagnosisDates = diagnoses.map((d) => new Date(d.time));
   const bookingSet = new Set(bookingDates.map((d) => d.toDateString()));
@@ -167,11 +169,9 @@ export default function Booking() {
     (d) => !bookingSet.has(d.toDateString())
   );
 
-  // when a day is clicked
   function handleDateSelect(date?: Date) {
     if (!date) return;
     setSelectedDate(date);
-
     const dayB = bookings.filter(
       (b) => new Date(b.startTime).toDateString() === date.toDateString()
     );
@@ -183,18 +183,11 @@ export default function Booking() {
     setSelectedDiagnosis(dayD[0] ?? null);
   }
 
-  // cancel future booking
   function handleCancel(id: string) {
     setBookings((bs) => bs.filter((b) => b.id !== id));
     if (selectedBooking?.id === id) setSelectedBooking(null);
   }
 
-  const todaysBookings = bookings.filter(
-    (b) => new Date(b.startTime).toDateString() === selectedDate.toDateString()
-  );
-  const todaysDiagnoses = diagnoses.filter(
-    (d) => new Date(d.time).toDateString() === selectedDate.toDateString()
-  );
   const upcoming = bookings
     .filter((b) => new Date(b.startTime) > now)
     .sort(
@@ -207,15 +200,7 @@ export default function Booking() {
       <div className="flex-1 flex justify-center">
         <div className="w-full max-w-[1100px] flex flex-col lg:flex-row gap-8">
           {/* Calendar */}
-          <div
-            className="
-              bg-white p-4 rounded-lg shadow
-              w-full
-              md:min-w-[300px] md:max-w-[800px]
-              min-h-[300px] md:min-h-[400px] md:max-h-[800px]
-              flex-1
-            "
-          >
+          <div className="bg-white p-4 rounded-lg shadow flex-1 min-h-[300px] md:min-h-[400px]">
             <Calendar
               mode="single"
               selected={selectedDate}
@@ -236,156 +221,11 @@ export default function Booking() {
 
           {/* Sidebar */}
           <div className="w-full lg:w-1/3 flex flex-col space-y-6">
-            {/* Upcoming */}
-            <div className="bg-white p-4 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-3">Upcoming</h2>
-              {upcoming.length > 0 ? (
-                <ul className="divide-y">
-                  {upcoming.map((b) => (
-                    <li
-                      key={b.id}
-                      className="py-2 flex justify-between items-center"
-                    >
-                      <div>
-                        <span className="font-medium">Dr. {b.doctorName}</span>{" "}
-                        <span className="text-gray-600 text-sm">
-                          {new Date(b.startTime).toLocaleDateString()}{" "}
-                          {new Date(b.startTime).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <button
-                        onClick={() => handleCancel(b.id)}
-                        className="text-red-500 text-sm hover:underline"
-                      >
-                        Cancel
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-gray-500">No upcoming appointments.</p>
-              )}
-            </div>
-
-            {/* Events on Selected Date */}
-            <div className="bg-white p-4 rounded-lg shadow sticky top-24">
-              <h2 className="text-xl font-semibold mb-3">
-                Events on {selectedDate.toLocaleDateString()}
-              </h2>
-
-              <section className="mb-4">
-                <h3 className="font-medium mb-2">Appointments</h3>
-                {todaysBookings.length > 0 ? (
-                  <ul className="divide-y">
-                    {todaysBookings.map((b) => (
-                      <li
-                        key={b.id}
-                        onClick={() => setSelectedDiagnosis(null)}
-                        className={`
-                          py-2 cursor-pointer
-                          ${
-                            selectedBooking?.id === b.id
-                              ? "bg-[#1C2D5A] text-white"
-                              : "hover:bg-[#32426F] hover:text-white"
-                          }
-                        `}
-                      >
-                        <div className="flex justify-between">
-                          <span>Dr. {b.doctorName}</span>
-                          <span className="text-sm">
-                            {new Date(b.startTime).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}{" "}
-                            –{" "}
-                            {new Date(b.endTime).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">No appointments.</p>
-                )}
-              </section>
-
-              <section>
-                <h3 className="font-medium mb-2">Diagnoses</h3>
-                {todaysDiagnoses.length > 0 ? (
-                  <ul className="divide-y">
-                    {todaysDiagnoses.map((d) => (
-                      <li
-                        key={d.id}
-                        onClick={() => setSelectedBooking(null)}
-                        className={`
-                          py-2 cursor-pointer
-                          ${
-                            selectedDiagnosis?.id === d.id
-                              ? "bg-[#FF6B6B] text-white"
-                              : "hover:bg-[#FFA8A8] hover:text-white"
-                          }
-                        `}
-                      >
-                        <div className="flex justify-between">
-                          <span>{d.patientName}</span>
-                          <span className="text-sm">
-                            {new Date(d.time).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-gray-500">No diagnoses.</p>
-                )}
-              </section>
-            </div>
-
-            {/* Details Panel */}
-            {(selectedBooking || selectedDiagnosis) && (
-              <div className="bg-white p-4 rounded-lg shadow">
-                {selectedBooking && (
-                  <>
-                    <h3 className="text-xl font-semibold mb-3">
-                      Appointment Details
-                    </h3>
-                    <p>
-                      <strong>Doctor:</strong> {selectedBooking.doctorName}
-                    </p>
-                    <p>
-                      <strong>Time:</strong>{" "}
-                      {new Date(selectedBooking.startTime).toLocaleString()} –{" "}
-                      {new Date(selectedBooking.endTime).toLocaleString()}
-                    </p>
-                    <p className="mt-2">{selectedBooking.details}</p>
-                  </>
-                )}
-                {selectedDiagnosis && (
-                  <>
-                    <h3 className="text-xl font-semibold mb-3">
-                      Diagnosis Details
-                    </h3>
-                    <p>
-                      <strong>Patient:</strong> {selectedDiagnosis.patientName}
-                    </p>
-                    <p>
-                      <strong>Time:</strong>{" "}
-                      {new Date(selectedDiagnosis.time).toLocaleString()}
-                    </p>
-                    <p className="mt-2">{selectedDiagnosis.description}</p>
-                  </>
-                )}
-              </div>
-            )}
+            <UpcomingPanel upcoming={upcoming} onCancel={handleCancel} />
+            <DetailsPanel
+              booking={selectedBooking}
+              diagnosis={selectedDiagnosis}
+            />
           </div>
         </div>
       </div>
