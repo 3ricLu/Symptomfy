@@ -1,5 +1,6 @@
 // Booking.tsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { CalendarDays } from "lucide-react";
 import { Calendar } from "../components/ui/calendar";
 import UpcomingPanel from "../components/booking/UpcomingPanel";
 import DetailsPanel from "../components/booking/DetailsPanel";
@@ -19,8 +20,8 @@ interface DiagnosisRecord {
   description: string;
 }
 
+// Mock booking and diagnosis data
 const mockBookings: BookingRecord[] = [
-  // June
   {
     id: "1",
     doctorName: "Smith",
@@ -42,7 +43,6 @@ const mockBookings: BookingRecord[] = [
     endTime: "2025-06-27T11:20:00.000Z",
     details: "Knee pain consultation.",
   },
-  // July
   {
     id: "4",
     doctorName: "Davis",
@@ -64,7 +64,6 @@ const mockBookings: BookingRecord[] = [
     endTime: "2025-07-22T13:45:00.000Z",
     details: "Eye exam.",
   },
-  // August
   {
     id: "5",
     doctorName: "Miller",
@@ -89,7 +88,6 @@ const mockBookings: BookingRecord[] = [
 ];
 
 const mockDiagnoses: DiagnosisRecord[] = [
-  // June
   {
     id: "d1",
     patientName: "Alice Baker",
@@ -108,7 +106,6 @@ const mockDiagnoses: DiagnosisRecord[] = [
     time: "2025-06-27T11:10:00.000Z",
     description: "Mild wrist sprain.",
   },
-  // July
   {
     id: "d4",
     patientName: "Eve Foster",
@@ -121,7 +118,6 @@ const mockDiagnoses: DiagnosisRecord[] = [
     time: "2025-07-10T09:00:00.000Z",
     description: "Lower back pain.",
   },
-  // August
   {
     id: "d5",
     patientName: "George Hall",
@@ -135,6 +131,11 @@ const mockDiagnoses: DiagnosisRecord[] = [
     description: "Flu symptoms.",
   },
 ];
+
+// Utility to normalize date to midnight
+function normalizeDate(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
 
 export default function Booking() {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -153,20 +154,18 @@ export default function Booking() {
   }, []);
 
   const now = new Date();
-
-  const bookingDates = bookings.map((b) => new Date(b.startTime));
-  const diagnosisDates = diagnoses.map((d) => new Date(d.time));
-  const bookingSet = new Set(bookingDates.map((d) => d.toDateString()));
-  const diagnosisSet = new Set(diagnosisDates.map((d) => d.toDateString()));
-
-  const bothDates = bookingDates.filter((d) =>
-    diagnosisSet.has(d.toDateString())
+  const bookingDates = bookings.map((b) =>
+    normalizeDate(new Date(b.startTime))
   );
-  const bookingOnlyDates = bookingDates.filter(
-    (d) => !diagnosisSet.has(d.toDateString())
+  const diagnosisDates = diagnoses.map((d) => normalizeDate(new Date(d.time)));
+  const bookingSet = new Set(bookingDates.map((d) => d.getTime()));
+  const diagnosisSet = new Set(diagnosisDates.map((d) => d.getTime()));
+  const bothDates = bookingDates.filter((d) => diagnosisSet.has(d.getTime()));
+  const bookingOnly = bookingDates.filter(
+    (d) => !diagnosisSet.has(d.getTime())
   );
-  const diagnosisOnlyDates = diagnosisDates.filter(
-    (d) => !bookingSet.has(d.toDateString())
+  const diagnosisOnly = diagnosisDates.filter(
+    (d) => !bookingSet.has(d.getTime())
   );
 
   function handleDateSelect(date?: Date) {
@@ -178,7 +177,6 @@ export default function Booking() {
     const dayD = diagnoses.filter(
       (d) => new Date(d.time).toDateString() === date.toDateString()
     );
-
     setSelectedBooking(dayB[0] ?? null);
     setSelectedDiagnosis(dayD[0] ?? null);
   }
@@ -196,37 +194,88 @@ export default function Booking() {
     );
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 p-6 pt-32">
-      <div className="flex-1 flex justify-center">
-        <div className="w-full max-w-[1100px] flex flex-col lg:flex-row gap-8">
-          {/* Calendar */}
-          <div className="bg-white p-4 rounded-lg shadow flex-1 min-h-[300px] md:min-h-[400px]">
+    <div className="min-h-screen bg-gray-50 p-8 pt-32">
+      <style>{`
+      .calendar-dot-blue .rdp-day_selected,
+      .calendar-dot-blue .rdp-day {
+        position: relative;
+      }
+      .calendar-dot-blue .rdp-day_selected::after,
+      .calendar-dot-blue .rdp-day::after {
+        content: '';
+        display: block;
+        margin: 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #2563eb;
+        margin-top: 2px;
+      }
+      .calendar-dot-red .rdp-day_selected,
+      .calendar-dot-red .rdp-day {
+        position: relative;
+      }
+      .calendar-dot-red .rdp-day_selected::after,
+      .calendar-dot-red .rdp-day::after {
+        content: '';
+        display: block;
+        margin: 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #dc2626;
+        margin-top: 2px;
+      }
+      .calendar-dot-purple .rdp-day_selected,
+      .calendar-dot-purple .rdp-day {
+        position: relative;
+      }
+      .calendar-dot-purple .rdp-day_selected::after,
+      .calendar-dot-purple .rdp-day::after {
+        content: '';
+        display: block;
+        margin: 0 auto;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: linear-gradient(90deg, #2563eb 50%, #dc2626 50%);
+        margin-top: 2px;
+      }
+    `}</style>
+      <div className="max-w-[1100px] mx-auto grid lg:grid-cols-3 gap-8">
+        {/* Calendar Card */}
+        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-md border border-gray-200">
+          <div className="flex items-center mb-4">
+            <CalendarDays className="w-6 h-6 text-indigo-600 mr-2" />
+            <h2 className="text-2xl font-semibold text-gray-800">Schedule</h2>
+          </div>
+          <div className="min-h-[300px] md:min-h-[500px]">
             <Calendar
               mode="single"
               selected={selectedDate}
               onSelect={handleDateSelect}
               modifiers={{
-                bookingOnly: bookingOnlyDates,
-                diagnosisOnly: diagnosisOnlyDates,
+                bookingOnly,
+                diagnosisOnly,
                 both: bothDates,
               }}
               modifiersClassNames={{
-                bookingOnly: "bg-[#1C2D5A] text-white rounded-full",
-                diagnosisOnly: "bg-[#FF6B6B] text-white rounded-full",
-                both: "indicator-both",
+                bookingOnly: "calendar-dot-blue",
+                diagnosisOnly: "calendar-dot-red",
+                both: "calendar-dot-purple",
               }}
               className="w-full h-full"
             />
           </div>
+        </div>
 
-          {/* Sidebar */}
-          <div className="w-full lg:w-1/3 flex flex-col space-y-6">
-            <UpcomingPanel upcoming={upcoming} onCancel={handleCancel} />
-            <DetailsPanel
-              booking={selectedBooking}
-              diagnosis={selectedDiagnosis}
-            />
-          </div>
+        {/* Sidebar Cards */}
+        <div className="space-y-6">
+          <UpcomingPanel upcoming={upcoming} onCancel={handleCancel} />
+          <DetailsPanel
+            booking={selectedBooking}
+            diagnosis={selectedDiagnosis}
+          />
         </div>
       </div>
     </div>
