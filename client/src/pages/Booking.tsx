@@ -1,5 +1,5 @@
 // Booking.tsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { CalendarDays } from "lucide-react";
 import { Calendar } from "../components/ui/calendar";
 import UpcomingPanel from "../components/booking/UpcomingPanel";
