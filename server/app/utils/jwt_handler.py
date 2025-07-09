@@ -10,16 +10,20 @@ def create_token(data: dict):
 def validate_access_token(access_token: str):
       if not access_token:
             return abort(401, "Missing or invalid access_token")
-      
+
       payload = validate_access_token_helper(access_token)
       
       if not payload:
             return abort(401, "Invalid or exipired token")
       
       return payload
+
 def validate_access_token_helper(token: str):
       try:
+            print(token)
             payload = jwt.decode(jwt=token, key=SECRET_KEY, algorithms=["HS256"])
+            print("payload:", payload)
             return payload
       except Exception as e:
+            print(e)
             return False

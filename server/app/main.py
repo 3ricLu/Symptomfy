@@ -10,6 +10,9 @@ from app.settings import settings
 from app.routers.users import user_bp
 from app.routers.questions import questions_bp
 from app.routers.patients import patient_bp
+from app.routers.doctors import doctor_bp
+from app.routers.clinics import clinic_bp
+
 from app.sessionStorage.middleware import session_middleware
 
 app = Flask(__name__)
@@ -47,6 +50,8 @@ api_bp = Blueprint('api', __name__, url_prefix='/api')
 
 api_bp.register_blueprint(user_bp, url_prefix='/user')
 api_bp.register_blueprint(patient_bp, url_prefix='/patient')
+api_bp.register_blueprint(doctor_bp, url_prefix='/doctor')
+api_bp.register_blueprint(clinic_bp, url_prefix='/clinic')
 api_bp.register_blueprint(questions_bp, url_prefix='/questions')
 
 app.register_blueprint(api_bp)
