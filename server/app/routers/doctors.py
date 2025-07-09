@@ -1,58 +1,74 @@
-from functools import wraps
-from flask import Blueprint, request, jsonify, make_response, Response, abort
-
-from ..database.database import SessionLocal
-from ..crud.users import UserCrud
+from flask import Blueprint, request, jsonify, make_response, Response, abort, g
 from ..crud.doctors import DoctorCrud
-from ..auth.user_auth import auth
-from ..utils.jwt_handler import validate_access_token
+from ..decorators.decorators import with_db_session, with_authenticated_user, roles_required
 
 doctor_bp = Blueprint('doctor_bp', __name__)
 
-def with_db_session_and_crud(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        db = SessionLocal()
-        user_crud = UserCrud(db)
-        doctor_crud = DoctorCrud(db)
-        try:
-            return func(db, user_crud, doctor_crud, *args, **kwargs)
-        finally:
-            db.close()
-    return wrapper
+@doctor_bp.route('', methods=['POST'])
+@with_db_session
+@with_authenticated_user
+def create_doctor(db) -> Response:
+    user = g.user
+    data = request.get_json() or {}
 
-@doctor_bp.route('', methods=['GET'])
-@with_db_session_and_crud
-def get_doctor(db, user_crud, doctor_crud) -> Response:
-    access_token = request.headers.get("access-token")
-    payload = validate_access_token(access_token)
+    clinic_id = data.get("clinic_id")
+    specialty = data.get("specialty")
+
+    user_id = data.get("user_id")
+    if user_id and g.user_role == "admin":
+        target_user_id = user_id
+    else:
+        target_user_id = user.id
+
+    doctor_crud = DoctorCrud(db)
+
+    try:
+        new_doctor = doctor_crud.create(
+            user_id=target_user_id,
+            clinic_id=clinic_id,
+            specialty=specialty
+        )
+    except Exception as e:
+        return make_response(jsonify({"error": str(e)}), 400)
+
+    return make_response(jsonify({
+        "message": f"Doctor profile created for user_id {target_user_id}",
+        **new_doctor.to_dict()
+    }), 201)
+
     
-    user_id = int(payload.get("sub"))
+@doctor_bp.route('', methods=['GET'])
+@with_db_session
+@with_authenticated_user
+def get_doctor(db) -> Response:
+    user = g.user
+    doctor_crud = DoctorCrud(db)
     
     try:
-        doctor = doctor_crud.get_doctor(user_id=user_id)
-    except Exception as e:
+        doctor = doctor_crud.get_doctor(user_id=user.id)
+    except Exception:
         return make_response(jsonify({
-            "message": f"Couldn't find doctor with user_id {user_id}"
-            }), 404)
+            "message": f"Couldn't find doctor with user_id {user.id}"
+        }), 404)
+    
     response_data = {
-        "message": f"Found doctor with user_id {user_id}",
+        "message": f"Found doctor with user_id {user.id}",
         **doctor.to_dict()
     }
 
     return make_response(jsonify(response_data), 200)
 
 @doctor_bp.route('', methods=['PUT'])
-@with_db_session_and_crud
-def update_doctor(db, user_crud, doctor_crud) -> Response:
-    access_token = request.headers.get("access-token")
-    payload = validate_access_token(access_token)
-    
-    user_id = int(payload.get("sub"))
-    
-    specialty = request.get_json().get("specialty") or None
-    clinic_id = request.get_json().get("clinic_id") or None
-    
+@with_db_session
+@with_authenticated_user
+def update_doctor(db) -> Response:
+    user = g.user
+    doctor_crud = DoctorCrud(db)
+
+    data = request.get_json()
+    specialty = data.get("specialty") if data else None
+    clinic_id = data.get("clinic_id") if data else None
+
     kwargs = {}
     if specialty is not None:
         kwargs["specialty"] = specialty
@@ -60,8 +76,34 @@ def update_doctor(db, user_crud, doctor_crud) -> Response:
         kwargs["clinic_id"] = clinic_id
 
     try:
-        doctor = doctor_crud.update(user_id=user_id, **kwargs)
+        doctor = doctor_crud.update(user_id=user.id, **kwargs)
     except Exception as e:
         return abort(500, str(e))
 
     return make_response(f"Updated Doctor with ID {doctor.id}", 204)
+
+@doctor_bp.route('/pending', methods=['GET'])
+@with_db_session
+@with_authenticated_user
+@roles_required("admin")
+def get_pending_doctors(db) -> Response:
+    doctor_crud = DoctorCrud(db)
+    pending_doctors = doctor_crud.get_pending_doctors()
+    return make_response(jsonify([doctor.to_dict() for doctor in pending_doctors]), 200)
+
+@doctor_bp.route('/pending', methods=['PUT'])
+@with_db_session
+@with_authenticated_user
+@roles_required("admin")
+def approve_pending_doctor(db) -> Response:
+    doctor_crud = DoctorCrud(db)
+    doctor_id = request.get_json().get("id")
+    if not doctor_id:
+        return make_response(jsonify({"message": "Invalid request - missing field: 'id'"}), 400)
+    try:
+        updated_doctor = doctor_crud.update(user_id=doctor_id, is_approved=True)
+        return make_response(jsonify({"message": f"Successfully approved doctor with user_id {doctor_id}"}), 200)
+    except Exception as e:
+        if "does not exist" in str(e):
+            return make_response(jsonify({"message": str(e)}), 404)
+        raise

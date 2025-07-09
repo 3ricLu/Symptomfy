@@ -40,7 +40,7 @@ def refresh_token(user_crud: UserCrud, token: str):
     if not user:
         return False
 
-    access_payload = _auth_payload(user, timedelta(minutes=15))
+    access_payload = _auth_payload(user, timedelta(minutes=30))
     refresh_payload = _auth_payload(user, timedelta(days=1))
     return {
         "access-token": create_token(access_payload),

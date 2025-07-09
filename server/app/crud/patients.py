@@ -10,6 +10,9 @@ class PatientCrud():
     def get_patient(self, **kwargs):
         return self.db.query(Patient).filter_by(**kwargs).first()
     
+    def isPatient(self, *, user_id):
+        return self.db.query(Patient).filter(Patient.user_id == user_id).first()
+    
     def create(self, *, user_id, address=None, sex=None, age=None):
         db_patient = Patient(user_id=user_id, address=address, sex=sex, age=age)
 
