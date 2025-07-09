@@ -1,4 +1,4 @@
-import api from "./interceptor";
+import api from "../../api/interceptor";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 

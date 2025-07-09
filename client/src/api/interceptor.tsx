@@ -1,7 +1,7 @@
 import axios from "axios";
-import store from "../../app/store";
-import { logout, login } from "./authSlice";
-import { TOKEN, REFRESH_TOKEN } from "./AuthConstants";
+import store from "../app/store";
+import { logout, login } from "../features/auth/authSlice";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const api = axios.create({ baseURL });
