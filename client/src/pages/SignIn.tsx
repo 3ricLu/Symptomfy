@@ -8,7 +8,7 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { login, register } from "../api/auth";
+import { login, register } from "../features/auth/authAPI";
 import { useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { useProfile } from "../context/ProfileContext";
@@ -39,7 +39,7 @@ const SignIn: React.FC = () => {
           navigate("/home");
         }
       } catch {
-        // invalid token
+        console.log("invalid token");
       }
     }
   }, [navigate]);

@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { TOKEN, REFRESH_TOKEN } from "./AuthConstants";
 
 const token = sessionStorage.getItem("token");
 
@@ -19,6 +20,8 @@ export const authSlice = createSlice({
     },
     logout: (state) => {
       state.isAuthenticated = false;
+      sessionStorage.removeItem(TOKEN);
+      sessionStorage.removeItem(REFRESH_TOKEN);
     },
   },
 });
