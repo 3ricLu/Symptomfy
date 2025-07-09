@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import ProtectedRoutes from "./ProtectedRoutes";
 import Home from "../pages/Home";
 import Booking from "../pages/Booking";
 import SignIn from "../pages/SignIn";
@@ -19,11 +19,13 @@ const AppRouter = () => {
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/home" element={<Home />} />
-        <Route path="/diagnosis" element={<Diagnosed />} />
-        <Route path="/diagnosed" element={<DiagnosisPage />} />
-        <Route path="/booking" element={<Booking />} />
-        <Route path="/signin" element={<SignIn />} />
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/login" element={<SignIn />} />
+        <Route element={<ProtectedRoutes />}>
+          <Route path="/diagnosis" element={<Diagnosed />} />
+          <Route path="/diagnosed" element={<DiagnosisPage />} />
+          <Route path="/booking" element={<Booking />} />
+          <Route path="/profile" element={<Profile />} />
+        </Route>
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

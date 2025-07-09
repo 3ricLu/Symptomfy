@@ -26,7 +26,7 @@ const Navigation: React.FC = () => {
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("refreshToken");
     setProfile(null);
-    navigate("/signin");
+    navigate("/login");
     setMobileOpen(false);
   };
 
@@ -73,7 +73,7 @@ const Navigation: React.FC = () => {
             </>
           )}
           {!isLoggedIn && (
-            <NavLink to="/signin" className={linkClasses}>
+            <NavLink to="/login" className={linkClasses}>
               <User size={18} /> Sign In
             </NavLink>
           )}
