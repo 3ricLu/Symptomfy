@@ -7,7 +7,8 @@ from ..utils.jwt_handler import validate_access_token
 
 questions_bp = Blueprint("questions_bp", __name__)
 
-@questions_bp.route('/initial', methods=['POST'])
+
+@questions_bp.route("/initial", methods=["POST"])
 def initialQuestion():
     """
     Starts a new session: clears any existing one and stores user_id.
@@ -15,18 +16,18 @@ def initialQuestion():
     """
     access_token = request.headers.get("access-token")
     payload = validate_access_token(access_token)
-    
+
     promptinfo = request.get_json()["body_locations"]
-    
+
     user_id = int(payload.get("sub"))
-    
+
     if not promptinfo:
         return jsonify({"error": "Prompt info is required"}), 400
     if not user_id:
         return jsonify({"error": "user_id is required"}), 400
 
     client = GeminiClient()
-    
+
     g.session_data.clear()
     g.session_data["user_id"] = user_id
     g.session_data["initialPainPoints"] = ", ".join(promptinfo)
@@ -45,32 +46,30 @@ def initialQuestion():
     DO NOT ask a question that cannot be a yes or no answer, no question you ask can be multi-faceted in anyway. It must be a clear yes or no question.
 
     """
-    
+
     response = asyncio.run(client.generate_response(prompt))
-    
+
     g.session_data["questionsAsked"].append(response)
 
-    return jsonify({
-        "message": "Succesful Prompt",
-        "response": response
-    })
-    
-@questions_bp.route('/next', methods=['POST'])
+    return jsonify({"message": "Succesful Prompt", "response": response})
+
+
+@questions_bp.route("/next", methods=["POST"])
 def nextQuestion():
     access_token = request.headers.get("access-token")
     payload = validate_access_token(access_token)
-    
+
     promptinfo = request.get_json()["answer"]
-    
+
     user_id = int(payload.get("sub"))
-    
+
     if not promptinfo:
         return jsonify({"error": "prompt info is required"}), 400
     if not user_id:
         return jsonify({"error": "user_id is required"}), 400
-    
+
     g.session_data["answers"].append(promptinfo)
-    
+
     paired = dict(zip(g.session_data["questionsAsked"], g.session_data["answers"]))
     print(paired, "PAIRED INFORMATION")
     client = GeminiClient()
@@ -88,33 +87,30 @@ def nextQuestion():
 
     DO NOT ask a question that cannot be a yes or no answer, no question you ask can be multi-faceted in anyway. It must be a clear yes or no question.
     """
-    
+
     response = asyncio.run(client.generate_response(prompt))
-    
+
     g.session_data["questionsAsked"].append(response)
-    
-    return jsonify({
-        "message": "Succesful Prompt",
-        "response": response
-    })
+
+    return jsonify({"message": "Succesful Prompt", "response": response})
+
 
 @questions_bp.route("/diagnos", methods=["POST"])
 def verdict():
-    
     access_token = request.headers.get("access-token")
     payload = validate_access_token(access_token)
-    
+
     promptinfo = request.get_json()["answer"]
-    
+
     user_id = int(payload.get("sub"))
-    
+
     if not promptinfo:
         return jsonify({"error": "prompt info is required"}), 400
     if not user_id:
         return jsonify({"error": "user_id is required"}), 400
-    
+
     g.session_data["answers"].append(promptinfo)
-    
+
     paired = dict(zip(g.session_data["questionsAsked"], g.session_data["answers"]))
 
     prompt = f"""
@@ -133,13 +129,9 @@ def verdict():
 
     Now, based on this data, what is the most probable diagnosis or set of diagnoses?
     """
-    
+
     client = GeminiClient()
-    
+
     response = asyncio.run(client.generate_response(prompt))
-    
-    
-    return jsonify({
-        "message": "Succesful Prompt",
-        "response": response
-    })
+
+    return jsonify({"message": "Succesful Prompt", "response": response})

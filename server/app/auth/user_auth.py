@@ -7,6 +7,7 @@ from ..database.models import User
 from ..settings import settings
 from ..utils.jwt_handler import create_token, validate_access_token
 
+
 def auth(user_crud: UserCrud, email: str, password: str):
     user = user_crud.get_user(email=email)
     if user and verify_password(password=password, hashed_password=user.hashedPassword):
@@ -15,17 +16,19 @@ def auth(user_crud: UserCrud, email: str, password: str):
         return {
             "access-token": create_token(access_payload),
             "refresh-token": create_token(refresh_payload),
-            "token-type": "bearer"
+            "token-type": "bearer",
         }
     return False
+
 
 def _auth_payload(user: User, expiration_delta: timedelta):
     return {
         "sub": str(user.id),
         "iss": settings.issuer,
         "iat": datetime.utcnow(),
-        "exp": datetime.utcnow() + expiration_delta
+        "exp": datetime.utcnow() + expiration_delta,
     }
+
 
 def refresh_token(user_crud: UserCrud, token: str):
     payload = validate_access_token(token)
@@ -45,5 +48,5 @@ def refresh_token(user_crud: UserCrud, token: str):
     return {
         "access-token": create_token(access_payload),
         "refresh-token": create_token(refresh_payload),
-        "token-type": "bearer"
+        "token-type": "bearer",
     }

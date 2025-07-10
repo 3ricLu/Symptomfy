@@ -4,6 +4,7 @@ from flask import request, g
 import uuid
 from app.sessionStorage.sessionStorage import get_session, save_session
 
+
 def session_middleware(app):
     @app.before_request
     def load_session():

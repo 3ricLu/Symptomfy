@@ -3,23 +3,34 @@ from sqlalchemy.exc import IntegrityError
 
 from app.database.models import Booking
 
-class BookingCrud():
+
+class BookingCrud:
     def __init__(self, db: Session):
         self.db = db
-    
+
     def get_booking(self, **kwargs):
         return self.db.query(Booking).filter_by(**kwargs).first()
-    
+
     def get_booking_all(self, **kwargs):
         return self.db.query(Booking).filter_by(**kwargs).all()
-    
-    def create(self, *, patient_id, doctor_id, diagnonsis_id, status="tentative", time_start, time_end):
+
+    def create(
+        self,
+        *,
+        patient_id,
+        doctor_id,
+        diagnonsis_id,
+        status="tentative",
+        time_start,
+        time_end,
+    ):
         db_booking = Booking(
-            patient_id=patient_id, 
-            doctor_id=doctor_id, 
-            status=status, 
-            time_start=time_start, 
-            time_end=time_end)
+            patient_id=patient_id,
+            doctor_id=doctor_id,
+            status=status,
+            time_start=time_start,
+            time_end=time_end,
+        )
 
         try:
             self.db.add(db_booking)
@@ -30,12 +41,12 @@ class BookingCrud():
             raise Exception(e.orig)
 
         return db_booking
-    
+
     def update(self, booking_id, **kwargs):
-        kwargs.pop('id', None)
+        kwargs.pop("id", None)
 
         booking = self.get_Booking(booking_id=booking_id)
-        
+
         if not booking:
             raise Exception("Booking not found")
 
