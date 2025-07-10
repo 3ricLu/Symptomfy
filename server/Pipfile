@@ -20,6 +20,8 @@ psycopg2-binary = "*"
 bcrypt = "*"
 pyjwt = "*"
 pydantic-settings = "*"
+pydantic = "*"
+email-validator = "*"
 flasgger = "*"
 google-generativeai = "*"
 

@@ -3,6 +3,8 @@ from flask import Blueprint, request, jsonify, make_response, Response, abort, g
 from ..crud.users import UserCrud
 from ..crud.patients import PatientCrud
 from ..crud.doctors import DoctorCrud
+from ..database.models import Patient
+from ..database.models import User
 from ..decorators.decorators import with_db_session, with_authenticated_user
 
 patient_bp = Blueprint("patient_bp", __name__)
@@ -12,27 +14,18 @@ patient_bp = Blueprint("patient_bp", __name__)
 @with_db_session
 @with_authenticated_user
 def get_patient(db) -> Response:
-    user = g.user
+    user: User = g.user
     user_crud = UserCrud(db)
     patient_crud = PatientCrud(db)
-    doctor_crud = DoctorCrud(db)
 
     try:
-        patient = patient_crud.get_patient(user_id=user.id)
-
-        doctor_info = None
-        if patient.familyDoctor is not None:
-            doctor = doctor_crud.get_doctor(id=patient.familyDoctor)
-            doctor_user = user_crud.get_user(id=doctor.user_id)
-            doctor_info = {
-                **doctor.to_patient_dict(),
-                **doctor_user.doctor_to_patient_dict(),
-            }
-
+        patient: Patient = patient_crud.get_patient(user_id=user.id)
+        user_profile = user.to_private_dicts()
+        patient_profile = patient.to_private_dicts()
         response_data = {
             "message": f"Found patient with user_id {user.id}",
-            **patient.to_dict(),
-            **({"family_doctor_info": doctor_info} if doctor_info else {}),
+            **user_profile,
+            **patient_profile,
         }
 
         return make_response(jsonify(response_data), 200)

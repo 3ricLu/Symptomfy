@@ -16,8 +16,8 @@ class DoctorCrud:
     def isDoctor(self, *, user_id):
         return self.db.query(Doctor).filter(Doctor.user_id == user_id).first()
 
-    def create(self, *, user_id, clinic_id=None, specialty=None):
-        db_doctor = Doctor(user_id=user_id, clinic_id=clinic_id, specialty=specialty)
+    def create(self, *, user_id, specialty=None):
+        db_doctor = Doctor(user_id=user_id, specialty=specialty)
         try:
             self.db.add(db_doctor)
             self.db.commit()

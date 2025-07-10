@@ -16,7 +16,6 @@ def create_doctor(db) -> Response:
     user = g.user
     data = request.get_json() or {}
 
-    clinic_id = data.get("clinic_id")
     specialty = data.get("specialty")
 
     user_id = data.get("user_id")
@@ -29,7 +28,7 @@ def create_doctor(db) -> Response:
 
     try:
         new_doctor = doctor_crud.create(
-            user_id=target_user_id, clinic_id=clinic_id, specialty=specialty
+            user_id=target_user_id, specialty=specialty
         )
     except Exception as e:
         return make_response(jsonify({"error": str(e)}), 400)
@@ -76,13 +75,10 @@ def update_doctor(db) -> Response:
 
     data = request.get_json()
     specialty = data.get("specialty") if data else None
-    clinic_id = data.get("clinic_id") if data else None
 
     kwargs = {}
     if specialty is not None:
         kwargs["specialty"] = specialty
-    if clinic_id is not None:
-        kwargs["clinic_id"] = clinic_id
 
     try:
         doctor = doctor_crud.update(user_id=user.id, **kwargs)

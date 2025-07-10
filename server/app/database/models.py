@@ -10,6 +10,8 @@ from app.database.database import Base
 class BaseModel:
     def to_dict(self):
         return {c.key: getattr(self, c.key) for c in inspect(self).mapper.column_attrs}
+    def table_keys(self):
+        return self.__table__.columns.keys()
 
 
 class User(Base, BaseModel):
@@ -19,11 +21,14 @@ class User(Base, BaseModel):
     email: Mapped[str] = mapped_column(
         sa.String, unique=True, index=True, nullable=False
     )
-    name: Mapped[Optional[str]] = mapped_column(sa.String, nullable=True)
     hashedPassword: Mapped[str] = mapped_column(sa.String, nullable=False)
     global_role: Mapped[Optional[str]] = mapped_column(
         sa.Enum("admin", "support", "auditor", name="global_role_enum"), nullable=True
     )
+    first_name: Mapped[Optional[str]] = mapped_column(sa.String, nullable=True)
+    middle_name: Mapped[Optional[str]] = mapped_column(sa.String, nullable=True)
+    last_name: Mapped[Optional[str]] = mapped_column(sa.String, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )
@@ -35,10 +40,21 @@ class User(Base, BaseModel):
     )
 
     def to_private_dicts(self):
-        return {"id": self.id, "email": self.email, "name": self.name}
+        return {
+            "id": self.id,
+            "email": self.email,
+            "first_name": self.first_name,
+            "middle_name": self.middle_name,
+            "last_name": self.last_name,
+        }
 
     def doctor_to_patient_dict(self):
-        return {"id": self.id, "name": self.name}
+        return {
+            "id": self.id,
+            "first_name": self.first_name,
+            "middle_name": self.middle_name,
+            "last_name": self.last_name,
+        }
 
 
 class Patient(Base, BaseModel):
@@ -51,11 +67,17 @@ class Patient(Base, BaseModel):
         sa.Enum("male", "female", "other", name="sex_enum"), nullable=True
     )
     age: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
-    familyDoctor: Mapped[Optional[int]] = mapped_column(sa.Integer, nullable=True)
 
     __table_args__ = (
         sa.CheckConstraint("age >= 0 AND age <= 140", name="age_between_0_and_140"),
     )
+    
+    def to_private_dicts(self):
+        return {
+            "sex": self.sex,
+            "address": self.address,
+            "age": self.age,
+        }
 
 
 class Clinic(Base, BaseModel):
@@ -97,9 +119,6 @@ class Doctor(Base, BaseModel):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[int] = mapped_column(sa.ForeignKey("users.id"), nullable=False)
-    clinic_id: Mapped[Optional[int]] = mapped_column(
-        sa.ForeignKey("clinics.id"), nullable=True
-    )
     specialty: Mapped[Optional[str]] = mapped_column(sa.String(255), nullable=True)
     is_approved: Mapped[bool] = mapped_column(
         sa.Boolean, nullable=False, server_default=sa.false()

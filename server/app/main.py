@@ -12,6 +12,7 @@ from app.routers.questions import questions_bp
 from app.routers.patients import patient_bp
 from app.routers.doctors import doctor_bp
 from app.routers.clinics import clinic_bp
+from app.routers.profile import profile_bp
 
 from app.sessionStorage.middleware import session_middleware
 
@@ -60,6 +61,7 @@ api_bp.register_blueprint(patient_bp, url_prefix="/patient")
 api_bp.register_blueprint(doctor_bp, url_prefix="/doctor")
 api_bp.register_blueprint(clinic_bp, url_prefix="/clinic")
 api_bp.register_blueprint(questions_bp, url_prefix="/questions")
+api_bp.register_blueprint(profile_bp, url_prefix="/profile")
 
 app.register_blueprint(api_bp)
 
