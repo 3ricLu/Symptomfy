@@ -7,7 +7,6 @@ export interface DoctorProfileState {
   lastName: string;
   picture: string;
   speciality: string;
-  clinics: string[];
 }
 
 const initialState: DoctorProfileState = {
@@ -16,7 +15,6 @@ const initialState: DoctorProfileState = {
   lastName: "",
   picture: "",
   speciality: "",
-  clinics: [],
 };
 
 export const doctorProfileSlice = createSlice({
@@ -38,19 +36,10 @@ export const doctorProfileSlice = createSlice({
     setSpeciality: (state, action: PayloadAction<string>) => {
       state.speciality = action.payload;
     },
-    setClinics: (state, action: PayloadAction<string[]>) => {
-      state.clinics = action.payload;
-    },
   },
 });
 
-export const {
-  setId,
-  setFirstName,
-  setLastName,
-  setPicture,
-  setSpeciality,
-  setClinics,
-} = doctorProfileSlice.actions;
+export const { setId, setFirstName, setLastName, setPicture, setSpeciality } =
+  doctorProfileSlice.actions;
 
 export default doctorProfileSlice.reducer;
