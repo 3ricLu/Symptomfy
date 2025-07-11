@@ -24,6 +24,7 @@ pydantic = "*"
 email-validator = "*"
 flasgger = "*"
 google-generativeai = "*"
+algoliasearch = "*"
 
 [dev-packages]
 ruff = "*"
