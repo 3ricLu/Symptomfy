@@ -8,10 +8,18 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { login, register } from "../features/auth/authAPI";
-import { useNavigate } from "react-router-dom";
+import {
+  login as APILogin,
+  register as APIRegister,
+} from "../features/auth/authAPI";
+import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { useProfile } from "../context/ProfileContext";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+
+import { useDispatch } from "react-redux";
+import { login, logout } from "../features/auth/authSlice";
+import api from "../api/interceptor";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -29,20 +37,34 @@ const SignIn: React.FC = () => {
   const isValidEmail = (e: string) => e.includes("@");
   const { setProfile } = useProfile();
 
-  // Redirect if token valid
+  const location = useLocation();
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
+    console.log(location.pathname);
+
+    const token = sessionStorage.getItem(TOKEN);
     if (token) {
       try {
-        const { exp }: { exp: number } = jwtDecode<{ exp: number }>(token);
+        const { exp }: { exp: number } = jwtDecode(token);
         if (exp * 1000 > Date.now()) {
-          navigate("/home");
+          dispatch(login());
+          if (
+            location.pathname === "/login" ||
+            location.pathname === "/signup"
+          ) {
+            navigate("/home");
+          }
+        } else {
+          dispatch(logout());
         }
       } catch {
-        console.log("invalid token");
+        throw new Error("Something went wrong");
       }
+    } else {
+      dispatch(logout());
     }
-  }, [navigate]);
+  }, [dispatch, location.pathname, navigate]);
 
   useEffect(() => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
@@ -73,20 +95,21 @@ const SignIn: React.FC = () => {
     }
 
     try {
-      const data = await login(email, password);
-      const token = data["access-token"];
-      sessionStorage.setItem("token", token);
-      if (data["refresh-token"]) {
-        sessionStorage.setItem("refreshToken", data["refresh-token"]);
+      const data = await APILogin(email, password);
+      const token = data[TOKEN];
+      sessionStorage.setItem(TOKEN, token);
+      if (data[REFRESH_TOKEN]) {
+        sessionStorage.setItem(REFRESH_TOKEN, data[REFRESH_TOKEN]);
       }
 
       // Fetch profile info after login and save to context
-      const profileRes = await fetch(
+
+      const profileRes = await api.get(
         `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
         {
           headers: {
             "Content-Type": "application/json",
-            "access-token": token,
+            TOKEN: token,
           },
         }
       );
@@ -96,6 +119,7 @@ const SignIn: React.FC = () => {
       const isDoctor = await checkDoctorStatus(token);
 
       setProfile({ ...profileData, isDoctor });
+      dispatch(login());
 
       navigate("/home");
     } catch (err: any) {
@@ -119,15 +143,15 @@ const SignIn: React.FC = () => {
     }
 
     try {
-      const data = await register(
+      const data = await APIRegister(
         registerEmail,
         registerPassword,
         registerName
       );
-      const token = data["access-token"];
-      sessionStorage.setItem("token", token);
-      if (data["refresh-token"]) {
-        sessionStorage.setItem("refreshToken", data["refresh-token"]);
+      const token = data[TOKEN];
+      sessionStorage.setItem(TOKEN, token);
+      if (data[REFRESH_TOKEN]) {
+        sessionStorage.setItem(REFRESH_TOKEN, data[REFRESH_TOKEN]);
       }
 
       // Fetch profile info after registration and save to context

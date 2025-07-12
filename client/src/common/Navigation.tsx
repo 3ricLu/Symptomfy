@@ -13,18 +13,19 @@ import logo_box from "../assets/images/logo_box.png";
 import { useProfile } from "../context/ProfileContext";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const { setProfile } = useProfile();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const isLoggedIn = !!sessionStorage.getItem("token");
+  const isLoggedIn = !!sessionStorage.getItem(TOKEN);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    sessionStorage.removeItem("token");
-    sessionStorage.removeItem("refreshToken");
+    localStorage.removeItem(TOKEN);
+    sessionStorage.removeItem(TOKEN);
+    sessionStorage.removeItem(REFRESH_TOKEN);
     setProfile(null);
     navigate("/login");
     setMobileOpen(false);

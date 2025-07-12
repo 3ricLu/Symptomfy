@@ -3,16 +3,24 @@ import type { PayloadAction } from "@reduxjs/toolkit";
 
 export interface DoctorProfileState {
   id: string;
+  global_role: "doctor";
   firstName: string;
   lastName: string;
+  middleName: string;
+  email: string;
+  phone: string;
   picture: string;
   speciality: string;
 }
 
 const initialState: DoctorProfileState = {
-  id: "",
-  firstName: "",
-  lastName: "",
+  id: "N/A",
+  global_role: "doctor",
+  firstName: "First Name",
+  lastName: "Last Name",
+  middleName: "",
+  email: "",
+  phone: "",
   picture: "",
   speciality: "",
 };
@@ -30,6 +38,15 @@ export const doctorProfileSlice = createSlice({
     setLastName: (state, action: PayloadAction<string>) => {
       state.lastName = action.payload;
     },
+    setMiddleName: (state, action: PayloadAction<string>) => {
+      state.middleName = action.payload;
+    },
+    setEmail: (state, action: PayloadAction<string>) => {
+      state.email = action.payload;
+    },
+    setPhone: (state, action: PayloadAction<string>) => {
+      state.phone = action.payload;
+    },
     setPicture: (state, action: PayloadAction<string>) => {
       state.picture = action.payload;
     },
@@ -39,7 +56,15 @@ export const doctorProfileSlice = createSlice({
   },
 });
 
-export const { setId, setFirstName, setLastName, setPicture, setSpeciality } =
-  doctorProfileSlice.actions;
+export const {
+  setId,
+  setFirstName,
+  setLastName,
+  setMiddleName,
+  setEmail,
+  setPhone,
+  setPicture,
+  setSpeciality,
+} = doctorProfileSlice.actions;
 
 export default doctorProfileSlice.reducer;

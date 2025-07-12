@@ -15,6 +15,7 @@ const handleError = (error: unknown): Promise<never> => {
 api.interceptors.request.use(
   (request) => {
     const token = sessionStorage.getItem(TOKEN);
+
     if (token) {
       request.headers = request.headers || {};
       request.headers.Authorization = token;
@@ -26,9 +27,11 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => response,
+
   async (error) => {
     const originalRequest = error.config;
     console.log(originalRequest);
+    console.log("test");
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -36,6 +39,7 @@ api.interceptors.response.use(
 
       if (!refreshToken) {
         handleError(error);
+        store.dispatch(logout());
       }
 
       try {

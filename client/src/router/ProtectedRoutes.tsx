@@ -6,6 +6,7 @@ const ProtectedRoutes = () => {
   const isAuthenticated = useSelector(
     (state: RootState) => state.authentication.isAuthenticated
   );
+  console.log(isAuthenticated);
   return isAuthenticated ? <Outlet /> : <Navigate to="login" />;
 };
 export default ProtectedRoutes;

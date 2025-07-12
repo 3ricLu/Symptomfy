@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+
 import { Card, CardContent } from "../components/ui/card";
 import { Separator } from "../components/ui/separator";
 import { Button } from "../components/ui/button";
@@ -7,6 +7,8 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { ChevronDown } from "lucide-react";
 import { useProfile } from "../context/ProfileContext";
+import api from "../api/interceptor";
+import { TOKEN } from "../features/auth/AuthConstants";
 
 const Profile: React.FC = () => {
   const { profile, setProfile } = useProfile();
@@ -33,14 +35,14 @@ const Profile: React.FC = () => {
       return;
     }
 
-    const token = sessionStorage.getItem("token");
+    const token = sessionStorage.getItem(TOKEN);
     if (!token) {
       setError("Not authenticated");
       setLoading(false);
       return;
     }
 
-    axios
+    api
       .get(`${baseURL}/api/patient`, {
         headers: { "Content-Type": "application/json", "access-token": token },
       })
@@ -73,7 +75,7 @@ const Profile: React.FC = () => {
 
     const updatedProfile = { age, sex, address, familyDoctor: doctor };
 
-    axios
+    api
       .put(`${baseURL}/api/patient`, updatedProfile, {
         headers: { "access-token": token },
       })
