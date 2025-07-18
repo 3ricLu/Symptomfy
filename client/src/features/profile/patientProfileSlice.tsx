@@ -33,54 +33,48 @@ export const patientProfileSlice = createSlice({
   name: "patientProfile",
   initialState,
   reducers: {
-    setID: (state, action: PayloadAction<string>) => {
+    setPatientProfile: (state, action: PayloadAction<string>) => {
+      Object.assign(state, action.payload);
+    },
+    setPatientID: (state, action: PayloadAction<string>) => {
       state.id = action.payload;
     },
-    setGlobalRole: (state, action: PayloadAction<"patient">) => {
+    setPatientGlobalRole: (state, action: PayloadAction<"patient">) => {
       state.global_role = action.payload;
     },
-    setFirstName: (state, action: PayloadAction<string>) => {
+    setPatientFirstName: (state, action: PayloadAction<string>) => {
       state.firstName = action.payload;
     },
-    setLastName: (state, action: PayloadAction<string>) => {
+    setPatientLastName: (state, action: PayloadAction<string>) => {
       state.lastName = action.payload;
     },
-    setMiddleName: (state, action: PayloadAction<string>) => {
+    setPatientMiddleName: (state, action: PayloadAction<string>) => {
       state.middleName = action.payload;
     },
-    setSex: (state, action: PayloadAction<"Male" | "Female" | "N/A">) => {
+    setPatientSex: (
+      state,
+      action: PayloadAction<"Male" | "Female" | "N/A">
+    ) => {
       state.sex = action.payload;
     },
-    setAge: (state, action: PayloadAction<number>) => {
+    setPatientAge: (state, action: PayloadAction<number>) => {
       state.age = action.payload;
     },
-    setAddress: (state, action: PayloadAction<string>) => {
+    setPatientAddress: (state, action: PayloadAction<string>) => {
       state.address = action.payload;
     },
-    setEmail: (state, action: PayloadAction<string>) => {
+    setPatientEmail: (state, action: PayloadAction<string>) => {
       state.email = action.payload;
     },
-    setPhone: (state, action: PayloadAction<string>) => {
+    setPatientPhone: (state, action: PayloadAction<string>) => {
       state.phone = action.payload;
     },
-    setPicture: (state, action: PayloadAction<string>) => {
+    setPatientPicture: (state, action: PayloadAction<string>) => {
       state.picture = action.payload;
     },
   },
 });
 
-export const {
-  setID,
-  setGlobalRole,
-  setFirstName,
-  setLastName,
-  setMiddleName,
-  setSex,
-  setAge,
-  setAddress,
-  setEmail,
-  setPhone,
-  setPicture,
-} = patientProfileSlice.actions;
+export const patientProfileActions = patientProfileSlice.actions;
 
 export default patientProfileSlice.reducer;

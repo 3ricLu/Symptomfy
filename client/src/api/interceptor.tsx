@@ -1,13 +1,13 @@
 import axios from "axios";
 import store from "../app/store";
-import { logout, login } from "../features/auth/authSlice";
+import { authActions } from "../features/auth/authSlice";
 import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const api = axios.create({ baseURL });
 
 const handleError = (error: unknown): Promise<never> => {
-  store.dispatch(logout());
+  store.dispatch(authActions.logout());
   window.location.href = "/login";
   return Promise.reject(error);
 };
@@ -39,7 +39,7 @@ api.interceptors.response.use(
 
       if (!refreshToken) {
         handleError(error);
-        store.dispatch(logout());
+        store.dispatch(authActions.logout());
       }
 
       try {
@@ -53,7 +53,7 @@ api.interceptors.response.use(
         const newAccessToken = response.data[TOKEN];
         sessionStorage.setItem(TOKEN, newAccessToken);
 
-        store.dispatch(login());
+        store.dispatch(authActions.login());
         api.defaults.headers.common[TOKEN] = newAccessToken;
         originalRequest.headers![TOKEN] = newAccessToken;
 

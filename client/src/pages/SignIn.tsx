@@ -8,18 +8,23 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
+
+import { useNavigate, useLocation } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+
+import { useDispatch } from "react-redux";
+import { authActions } from "../features/auth/authSlice";
+import { doctorProfileActions } from "../features/profile/doctorProfileSlice";
+import { patientProfileActions } from "../features/profile/patientProfileSlice";
+import { adminProfileActions } from "../features/profile/adminProfileSlice";
+
 import {
   login as APILogin,
   register as APIRegister,
 } from "../features/auth/authAPI";
-import { useNavigate, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import { useProfile } from "../context/ProfileContext";
-import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
-import { useDispatch } from "react-redux";
-import { login, logout } from "../features/auth/authSlice";
-import api from "../api/interceptor";
+import { getProfile } from "../features/profile/profileAPI";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -35,7 +40,6 @@ const SignIn: React.FC = () => {
   const [error, setError] = useState("");
 
   const isValidEmail = (e: string) => e.includes("@");
-  const { setProfile } = useProfile();
 
   const location = useLocation();
   const dispatch = useDispatch();
@@ -48,7 +52,7 @@ const SignIn: React.FC = () => {
       try {
         const { exp }: { exp: number } = jwtDecode(token);
         if (exp * 1000 > Date.now()) {
-          dispatch(login());
+          dispatch(authActions.login());
           if (
             location.pathname === "/login" ||
             location.pathname === "/signup"
@@ -56,36 +60,19 @@ const SignIn: React.FC = () => {
             navigate("/home");
           }
         } else {
-          dispatch(logout());
+          dispatch(authActions.logout());
         }
       } catch {
         throw new Error("Something went wrong");
       }
     } else {
-      dispatch(logout());
+      dispatch(authActions.logout());
     }
   }, [dispatch, location.pathname, navigate]);
 
   useEffect(() => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
   }, [registerPassword, confirmPassword]);
-
-  const checkDoctorStatus = async (token: string) => {
-    try {
-      const doctorRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/doctor/me`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "access-token": token,
-          },
-        }
-      );
-      return doctorRes.ok;
-    } catch {
-      return false;
-    }
-  };
 
   const handleSignInClick = async () => {
     setError("");
@@ -97,33 +84,34 @@ const SignIn: React.FC = () => {
     try {
       const data = await APILogin(email, password);
       const token = data[TOKEN];
+      const refreshToken = data[REFRESH_TOKEN];
       sessionStorage.setItem(TOKEN, token);
-      if (data[REFRESH_TOKEN]) {
-        sessionStorage.setItem(REFRESH_TOKEN, data[REFRESH_TOKEN]);
+      sessionStorage.setItem(REFRESH_TOKEN, refreshToken);
+
+      console.log("getting profile");
+
+      const profile = await getProfile();
+      console.log(profile);
+      switch (profile.global_role) {
+        case "Patient": {
+          dispatch(patientProfileActions.setPatientProfile(profile));
+          break;
+        }
+        case "Doctor": {
+          dispatch(doctorProfileActions.setDoctorProfile(profile));
+          break;
+        }
+        case "Admin": {
+          dispatch(adminProfileActions.setAdminProfile(profile));
+          break;
+        }
       }
 
-      // Fetch profile info after login and save to context
-
-      const profileRes = await api.get(
-        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            TOKEN: token,
-          },
-        }
-      );
-      let profileData = profileRes.ok ? await profileRes.json() : {};
-
-      // Check if user is a doctor
-      const isDoctor = await checkDoctorStatus(token);
-
-      setProfile({ ...profileData, isDoctor });
-      dispatch(login());
-
+      dispatch(authActions.login());
       navigate("/home");
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
+    } catch (err: unknown) {
+      setError("Login failed. Please try again.");
+      console.log(err);
     }
   };
 
@@ -149,31 +137,15 @@ const SignIn: React.FC = () => {
         registerName
       );
       const token = data[TOKEN];
+      const refreshToken = data[REFRESH_TOKEN];
       sessionStorage.setItem(TOKEN, token);
-      if (data[REFRESH_TOKEN]) {
-        sessionStorage.setItem(REFRESH_TOKEN, data[REFRESH_TOKEN]);
-      }
+      sessionStorage.setItem(REFRESH_TOKEN, refreshToken);
 
-      // Fetch profile info after registration and save to context
-      const profileRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "access-token": token,
-          },
-        }
-      );
-      let profileData = profileRes.ok ? await profileRes.json() : {};
-
-      // Check if user is a doctor
-      const isDoctor = await checkDoctorStatus(token);
-
-      setProfile({ ...profileData, isDoctor });
-
+      dispatch(authActions.login());
       navigate("/home");
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+    } catch (err: unknown) {
+      setError("Registration failed. Please try again.");
+      console.log(err);
     }
   };
 

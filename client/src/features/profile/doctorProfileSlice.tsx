@@ -29,42 +29,36 @@ export const doctorProfileSlice = createSlice({
   name: "doctorProfile",
   initialState,
   reducers: {
-    setId: (state, action: PayloadAction<string>) => {
+    setDoctorProfile: (state, action: PayloadAction<string>) => {
+      Object.assign(state, action.payload);
+    },
+    setDoctorId: (state, action: PayloadAction<string>) => {
       state.id = action.payload;
     },
-    setFirstName: (state, action: PayloadAction<string>) => {
+    setDoctorFirstName: (state, action: PayloadAction<string>) => {
       state.firstName = action.payload;
     },
-    setLastName: (state, action: PayloadAction<string>) => {
+    setDoctorLastName: (state, action: PayloadAction<string>) => {
       state.lastName = action.payload;
     },
-    setMiddleName: (state, action: PayloadAction<string>) => {
+    setDoctorMiddleName: (state, action: PayloadAction<string>) => {
       state.middleName = action.payload;
     },
-    setEmail: (state, action: PayloadAction<string>) => {
+    setDoctorEmail: (state, action: PayloadAction<string>) => {
       state.email = action.payload;
     },
-    setPhone: (state, action: PayloadAction<string>) => {
+    setDoctorPhone: (state, action: PayloadAction<string>) => {
       state.phone = action.payload;
     },
-    setPicture: (state, action: PayloadAction<string>) => {
+    setDoctorPicture: (state, action: PayloadAction<string>) => {
       state.picture = action.payload;
     },
-    setSpeciality: (state, action: PayloadAction<string>) => {
+    setDoctorSpeciality: (state, action: PayloadAction<string>) => {
       state.speciality = action.payload;
     },
   },
 });
 
-export const {
-  setId,
-  setFirstName,
-  setLastName,
-  setMiddleName,
-  setEmail,
-  setPhone,
-  setPicture,
-  setSpeciality,
-} = doctorProfileSlice.actions;
+export const doctorProfileActions = doctorProfileSlice.actions;
 
 export default doctorProfileSlice.reducer;

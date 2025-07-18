@@ -21,6 +21,9 @@ export const adminProfileSlice = createSlice({
   name: "adminProfile",
   initialState,
   reducers: {
+    setAdminProfile: (state, action: PayloadAction<string>) => {
+      Object.assign(state, action.payload);
+    },
     setId: (state, action: PayloadAction<string>) => {
       state.id = action.payload;
     },
@@ -39,7 +42,6 @@ export const adminProfileSlice = createSlice({
   },
 });
 
-export const { setFirstName, setLastName, setPicture, setPermissions } =
-  adminProfileSlice.actions;
+export const adminProfileActions = adminProfileSlice.actions;
 
 export default adminProfileSlice.reducer;

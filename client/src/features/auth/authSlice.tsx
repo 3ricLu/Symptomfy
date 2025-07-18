@@ -1,7 +1,9 @@
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { TOKEN, REFRESH_TOKEN } from "./AuthConstants";
 
 const token = sessionStorage.getItem("token");
+
+// export const loginUser = createAsyncThunk("auth/loginUser", async)
 
 export interface AuthState {
   isAuthenticated: boolean;
@@ -26,5 +28,5 @@ export const authSlice = createSlice({
   },
 });
 
-export const { login, logout } = authSlice.actions;
+export const authActions = authSlice.actions;
 export default authSlice.reducer;
