@@ -12,8 +12,10 @@ import { Button } from "../components/ui/button";
 import { useNavigate } from "react-router-dom";
 
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser, registerUser } from "../features/auth/authSlice";
+import { loginUser, registerUser, refreshAccessToken } from "../features/auth/authSlice";
 import type { AppDispatch, RootState } from "../app/store";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+import { jwtDecode } from "jwt-decode";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -35,7 +37,45 @@ const SignIn: React.FC = () => {
     (state: RootState) => state.authentication
   );
 
-  // Remove the auto-redirect logic entirely - let the user manually login
+  // Auto-redirect logic for users with valid tokens
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      const token = sessionStorage.getItem(TOKEN);
+      const refreshTokenValue = sessionStorage.getItem(REFRESH_TOKEN);
+      
+      // Check if access token exists and is valid
+      if (token) {
+        try {
+          const { exp }: { exp: number } = jwtDecode(token);
+          if (exp * 1000 > Date.now()) {
+            // Token is still valid, redirect to home
+            navigate("/home");
+            return;
+          }
+        } catch (error) {
+          console.error("Invalid access token:", error);
+        }
+      }
+      
+      // If access token is invalid/expired, try refresh token
+      if (refreshTokenValue) {
+        try {
+          const { exp }: { exp: number } = jwtDecode(refreshTokenValue);
+          if (exp * 1000 > Date.now()) {
+            // Refresh token is valid, get new access token
+            const result = await dispatch(refreshAccessToken());
+            if (refreshAccessToken.fulfilled.match(result)) {
+              navigate("/home");
+            }
+          }
+        } catch (error) {
+          console.error("Invalid refresh token:", error);
+        }
+      }
+    };
+    
+    checkAndRedirect();
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");

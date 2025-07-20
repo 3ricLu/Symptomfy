@@ -32,3 +32,15 @@ export const register = async (
     throw error;
   }
 };
+
+export const refreshToken = async (refreshToken: string) => {
+  try {
+    const response = await api.post(`${baseURL}/api/user/refresh`, {
+      refreshToken: refreshToken,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    console.error("Token refresh failed:", error);
+    throw error;
+  }
+};

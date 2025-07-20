@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { login, register } from "./authAPI";
+import { login, register, refreshToken } from "./authAPI";
 import { TOKEN, REFRESH_TOKEN } from "./AuthConstants";
 import { jwtDecode } from "jwt-decode";
 
@@ -106,6 +106,46 @@ export const registerUser = createAsyncThunk(
   }
 );
 
+export const refreshAccessToken = createAsyncThunk(
+  "auth/refreshToken",
+  async (_, { rejectWithValue }) => {
+    try {
+      const refreshTokenValue = sessionStorage.getItem(REFRESH_TOKEN);
+
+      if (!refreshTokenValue) {
+        return rejectWithValue("No refresh token available");
+      }
+
+      // Check if refresh token is still valid
+      try {
+        const { exp }: { exp: number } = jwtDecode(refreshTokenValue);
+        if (exp * 1000 <= Date.now()) {
+          return rejectWithValue("Refresh token expired");
+        }
+      } catch {
+        return rejectWithValue("Invalid refresh token");
+      }
+
+      const response = await refreshToken(refreshTokenValue);
+      console.log("Refresh token response:", response);
+
+      if (response["access-token"]) {
+        sessionStorage.setItem(TOKEN, response["access-token"]);
+        console.log("Saved new access token to sessionStorage");
+      }
+      if (response["refresh-token"]) {
+        sessionStorage.setItem(REFRESH_TOKEN, response["refresh-token"]);
+        console.log("Saved new refresh token to sessionStorage");
+      }
+
+      return response;
+    } catch (error: unknown) {
+      console.log(error);
+      return rejectWithValue("Failed to refresh token");
+    }
+  }
+);
+
 export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -168,6 +208,20 @@ export const authSlice = createSlice({
       state.isAuthenticated = false;
       state.isLoading = false;
       state.errorMessage = (action.payload as string) || "Registration failed";
+    });
+    builder.addCase(refreshAccessToken.pending, (state) => {
+      state.isLoading = true;
+      state.errorMessage = "";
+    });
+    builder.addCase(refreshAccessToken.fulfilled, (state) => {
+      state.isAuthenticated = true;
+      state.isLoading = false;
+      state.errorMessage = "";
+    });
+    builder.addCase(refreshAccessToken.rejected, (state, action) => {
+      state.isAuthenticated = false;
+      state.isLoading = false;
+      state.errorMessage = (action.payload as string) || "Token refresh failed";
     });
   },
 });
