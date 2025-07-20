@@ -5,7 +5,6 @@ const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const api = axios.create({ baseURL });
 
 const handleError = (error: unknown): Promise<never> => {
-  // Lazy import to avoid circular dependency
   import("../app/store").then((module) => {
     import("../features/auth/authSlice").then((authModule) => {
       module.default.dispatch(authModule.authActions.logout());
@@ -66,7 +65,6 @@ api.interceptors.response.use(
         const newAccessToken = response.data[TOKEN];
         sessionStorage.setItem(TOKEN, newAccessToken);
 
-        // Lazy import to avoid circular dependency
         import("../app/store").then((module) => {
           import("../features/auth/authSlice").then((authModule) => {
             module.default.dispatch(authModule.authActions.login());

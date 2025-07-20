@@ -16,9 +16,8 @@ import type { AppDispatch } from "../app/store";
 
 const AppContent = () => {
   const dispatch = useDispatch<AppDispatch>();
-  
+
   useEffect(() => {
-    // Check authentication status on app load
     dispatch(authActions.checkAuth());
   }, [dispatch]);
 

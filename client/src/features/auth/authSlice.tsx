@@ -116,7 +116,6 @@ export const refreshAccessToken = createAsyncThunk(
         return rejectWithValue("No refresh token available");
       }
 
-      // Check if refresh token is still valid
       try {
         const { exp }: { exp: number } = jwtDecode(refreshTokenValue);
         if (exp * 1000 <= Date.now()) {
@@ -175,7 +174,6 @@ export const authSlice = createSlice({
       state.errorMessage = "";
     },
     checkAuth: (state) => {
-      // Re-check authentication status from sessionStorage
       state.isAuthenticated = checkTokenValidity();
     },
   },
