@@ -8,10 +8,18 @@ import {
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
-import { login, register } from "../api/auth";
+
 import { useNavigate } from "react-router-dom";
+
+import { useDispatch, useSelector } from "react-redux";
+import {
+  loginUser,
+  registerUser,
+  refreshAccessToken,
+} from "../features/auth/authSlice";
+import type { AppDispatch, RootState } from "../app/store";
+import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 import { jwtDecode } from "jwt-decode";
-import { useProfile } from "../context/ProfileContext";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -27,43 +35,53 @@ const SignIn: React.FC = () => {
   const [error, setError] = useState("");
 
   const isValidEmail = (e: string) => e.includes("@");
-  const { setProfile } = useProfile();
 
-  // Redirect if token valid
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, errorMessage } = useSelector(
+    (state: RootState) => state.authentication
+  );
+
+  // Auto-redirect logic for users with valid tokens
   useEffect(() => {
-    const token = sessionStorage.getItem("token");
-    if (token) {
-      try {
-        const { exp }: { exp: number } = jwtDecode<{ exp: number }>(token);
-        if (exp * 1000 > Date.now()) {
-          navigate("/home");
+    const checkAndRedirect = async () => {
+      const token = sessionStorage.getItem(TOKEN);
+      const refreshTokenValue = sessionStorage.getItem(REFRESH_TOKEN);
+
+      // Check if access token exists and is valid
+      if (token) {
+        try {
+          const { exp }: { exp: number } = jwtDecode(token);
+          if (exp * 1000 > Date.now()) {
+            // Token is still valid, redirect to home
+            navigate("/home");
+            return;
+          }
+        } catch (error) {
+          console.error("Invalid access token:", error);
         }
-      } catch {
-        // invalid token
       }
-    }
-  }, [navigate]);
+
+      if (refreshTokenValue) {
+        try {
+          const { exp }: { exp: number } = jwtDecode(refreshTokenValue);
+          if (exp * 1000 > Date.now()) {
+            const result = await dispatch(refreshAccessToken());
+            if (refreshAccessToken.fulfilled.match(result)) {
+              navigate("/home");
+            }
+          }
+        } catch (error) {
+          console.error("Invalid refresh token:", error);
+        }
+      }
+    };
+
+    checkAndRedirect();
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
   }, [registerPassword, confirmPassword]);
-
-  const checkDoctorStatus = async (token: string) => {
-    try {
-      const doctorRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/doctor/me`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "access-token": token,
-          },
-        }
-      );
-      return doctorRes.ok;
-    } catch {
-      return false;
-    }
-  };
 
   const handleSignInClick = async () => {
     setError("");
@@ -72,34 +90,9 @@ const SignIn: React.FC = () => {
       return;
     }
 
-    try {
-      const data = await login(email, password);
-      const token = data["access-token"];
-      sessionStorage.setItem("token", token);
-      if (data["refresh-token"]) {
-        sessionStorage.setItem("refreshToken", data["refresh-token"]);
-      }
-
-      // Fetch profile info after login and save to context
-      const profileRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "access-token": token,
-          },
-        }
-      );
-      let profileData = profileRes.ok ? await profileRes.json() : {};
-
-      // Check if user is a doctor
-      const isDoctor = await checkDoctorStatus(token);
-
-      setProfile({ ...profileData, isDoctor });
-
+    const result = await dispatch(loginUser({ email, password }));
+    if (loginUser.fulfilled.match(result)) {
       navigate("/home");
-    } catch (err: any) {
-      setError(err.message || "Login failed. Please try again.");
     }
   };
 
@@ -118,42 +111,21 @@ const SignIn: React.FC = () => {
       return;
     }
 
-    try {
-      const data = await register(
-        registerEmail,
-        registerPassword,
-        registerName
-      );
-      const token = data["access-token"];
-      sessionStorage.setItem("token", token);
-      if (data["refresh-token"]) {
-        sessionStorage.setItem("refreshToken", data["refresh-token"]);
-      }
-
-      // Fetch profile info after registration and save to context
-      const profileRes = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL}/api/patient`,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            "access-token": token,
-          },
-        }
-      );
-      let profileData = profileRes.ok ? await profileRes.json() : {};
-
-      // Check if user is a doctor
-      const isDoctor = await checkDoctorStatus(token);
-
-      setProfile({ ...profileData, isDoctor });
-
+    const result = await dispatch(
+      registerUser({
+        email: registerEmail,
+        password: registerPassword,
+        name: registerName,
+      })
+    );
+    if (registerUser.fulfilled.match(result)) {
       navigate("/home");
-    } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
     }
   };
 
-  const resetError = () => setError("");
+  const resetError = () => {
+    setError("");
+  };
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-white text-[#1C2D5A] px-4">
@@ -191,12 +163,15 @@ const SignIn: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {(error || errorMessage) && (
+                <p className="text-sm text-red-600">{error || errorMessage}</p>
+              )}
               <Button
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white"
                 onClick={handleSignInClick}
+                disabled={isLoading}
               >
-                Sign In
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </div>
           </TabsContent>
@@ -249,19 +224,22 @@ const SignIn: React.FC = () => {
                   </p>
                 )}
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {(error || errorMessage) && (
+                <p className="text-sm text-red-600">{error || errorMessage}</p>
+              )}
               <Button
                 disabled={
                   !registerName ||
                   !isMatch ||
                   !registerPassword ||
                   !confirmPassword ||
-                  !registerEmail
+                  !registerEmail ||
+                  isLoading
                 }
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white disabled:opacity-50"
                 onClick={handleSignUpClick}
               >
-                Create Account
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </div>
           </TabsContent>

@@ -1,10 +1,10 @@
-import axios from "axios";
+import api from "../../api/interceptor";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 export const login = async (email: string, password: string) => {
   try {
-    const response = await axios.post(`${baseURL}/api/user/auth`, {
+    const response = await api.post(`${baseURL}/api/user/auth`, {
       email: email,
       password: password,
     });
@@ -21,7 +21,7 @@ export const register = async (
   name: string
 ) => {
   try {
-    const response = await axios.post(`${baseURL}/api/user`, {
+    const response = await api.post(`${baseURL}/api/user`, {
       email: email,
       password: password,
       name: name,
@@ -29,6 +29,18 @@ export const register = async (
     return response.data;
   } catch (error: unknown) {
     console.error("Registration failed:", error);
+    throw error;
+  }
+};
+
+export const refreshToken = async (refreshToken: string) => {
+  try {
+    const response = await api.post(`${baseURL}/api/user/refresh`, {
+      refreshToken: refreshToken,
+    });
+    return response.data;
+  } catch (error: unknown) {
+    console.error("Token refresh failed:", error);
     throw error;
   }
 };
