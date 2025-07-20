@@ -13,16 +13,13 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
-import { useDispatch } from "react-redux";
-import { authActions } from "../features/auth/authSlice";
-import { doctorProfileActions } from "../features/profile/doctorProfileSlice";
-import { patientProfileActions } from "../features/profile/patientProfileSlice";
-import { adminProfileActions } from "../features/profile/adminProfileSlice";
-
+import { useDispatch, useSelector } from "react-redux";
 import {
-  login as APILogin,
-  register as APIRegister,
-} from "../features/auth/authAPI";
+  authActions,
+  loginUser,
+  registerUser,
+} from "../features/auth/authSlice";
+import { AppDispatch, RootState } from "../app/store";
 
 import { getProfile } from "../features/profile/profileAPI";
 
@@ -42,7 +39,10 @@ const SignIn: React.FC = () => {
   const isValidEmail = (e: string) => e.includes("@");
 
   const location = useLocation();
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
+  const { isLoading, errorMessage } = useSelector(
+    (state: RootState) => state.auth
+  );
 
   useEffect(() => {
     console.log(location.pathname);
@@ -81,37 +81,9 @@ const SignIn: React.FC = () => {
       return;
     }
 
-    try {
-      const data = await APILogin(email, password);
-      const token = data[TOKEN];
-      const refreshToken = data[REFRESH_TOKEN];
-      sessionStorage.setItem(TOKEN, token);
-      sessionStorage.setItem(REFRESH_TOKEN, refreshToken);
-
-      console.log("getting profile");
-
-      const profile = await getProfile();
-      console.log(profile);
-      switch (profile.global_role) {
-        case "Patient": {
-          dispatch(patientProfileActions.setPatientProfile(profile));
-          break;
-        }
-        case "Doctor": {
-          dispatch(doctorProfileActions.setDoctorProfile(profile));
-          break;
-        }
-        case "Admin": {
-          dispatch(adminProfileActions.setAdminProfile(profile));
-          break;
-        }
-      }
-
-      dispatch(authActions.login());
+    const result = await dispatch(loginUser({ email, password }));
+    if (loginUser.fulfilled.match(result)) {
       navigate("/home");
-    } catch (err: unknown) {
-      setError("Login failed. Please try again.");
-      console.log(err);
     }
   };
 
@@ -130,22 +102,15 @@ const SignIn: React.FC = () => {
       return;
     }
 
-    try {
-      const data = await APIRegister(
-        registerEmail,
-        registerPassword,
-        registerName
-      );
-      const token = data[TOKEN];
-      const refreshToken = data[REFRESH_TOKEN];
-      sessionStorage.setItem(TOKEN, token);
-      sessionStorage.setItem(REFRESH_TOKEN, refreshToken);
-
-      dispatch(authActions.login());
+    const result = await dispatch(
+      registerUser({
+        email: registerEmail,
+        password: registerPassword,
+        name: registerName,
+      })
+    );
+    if (registerUser.fulfilled.match(result)) {
       navigate("/home");
-    } catch (err: unknown) {
-      setError("Registration failed. Please try again.");
-      console.log(err);
     }
   };
 
@@ -187,12 +152,15 @@ const SignIn: React.FC = () => {
                   onChange={(e) => setPassword(e.target.value)}
                 />
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {(error || errorMessage) && (
+                <p className="text-sm text-red-600">{error || errorMessage}</p>
+              )}
               <Button
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white"
                 onClick={handleSignInClick}
+                disabled={isLoading}
               >
-                Sign In
+                {isLoading ? "Signing in..." : "Sign In"}
               </Button>
             </div>
           </TabsContent>
@@ -245,19 +213,22 @@ const SignIn: React.FC = () => {
                   </p>
                 )}
               </div>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {(error || errorMessage) && (
+                <p className="text-sm text-red-600">{error || errorMessage}</p>
+              )}
               <Button
                 disabled={
                   !registerName ||
                   !isMatch ||
                   !registerPassword ||
                   !confirmPassword ||
-                  !registerEmail
+                  !registerEmail ||
+                  isLoading
                 }
                 className="w-full bg-[#2541B2] hover:bg-[#1C2D5A] text-white disabled:opacity-50"
                 onClick={handleSignUpClick}
               >
-                Create Account
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </div>
           </TabsContent>
