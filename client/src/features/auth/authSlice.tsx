@@ -1,8 +1,19 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { login, register } from "./authAPI";
 import { TOKEN, REFRESH_TOKEN } from "./AuthConstants";
+import { jwtDecode } from "jwt-decode";
 
-const token = sessionStorage.getItem(TOKEN);
+const checkTokenValidity = () => {
+  const token = sessionStorage.getItem(TOKEN);
+  if (!token) return false;
+
+  try {
+    const { exp }: { exp: number } = jwtDecode(token);
+    return exp * 1000 > Date.now();
+  } catch {
+    return false;
+  }
+};
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
@@ -12,12 +23,15 @@ export const loginUser = createAsyncThunk(
   ) => {
     try {
       const response = await login(credentials.email, credentials.password);
+      console.log("Login response:", response);
 
-      if (response.access_token) {
-        sessionStorage.setItem(TOKEN, response.access_token);
+      if (response["access-token"]) {
+        sessionStorage.setItem(TOKEN, response["access-token"]);
+        console.log("Saved access token to sessionStorage");
       }
-      if (response.refresh_token) {
-        sessionStorage.setItem(REFRESH_TOKEN, response.refresh_token);
+      if (response["refresh-token"]) {
+        sessionStorage.setItem(REFRESH_TOKEN, response["refresh-token"]);
+        console.log("Saved refresh token to sessionStorage");
       }
 
       return response;
@@ -99,7 +113,7 @@ export interface AuthState {
 }
 
 const initialState: AuthState = {
-  isAuthenticated: Boolean(token),
+  isAuthenticated: checkTokenValidity(),
   isLoading: false,
   errorMessage: "",
 };
@@ -120,10 +134,13 @@ export const authSlice = createSlice({
     clearError: (state) => {
       state.errorMessage = "";
     },
+    checkAuth: (state) => {
+      // Re-check authentication status from sessionStorage
+      state.isAuthenticated = checkTokenValidity();
+    },
   },
   extraReducers: (builder) => {
     builder.addCase(loginUser.pending, (state) => {
-      state.isAuthenticated = false;
       state.isLoading = true;
       state.errorMessage = "";
     });

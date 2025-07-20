@@ -13,7 +13,7 @@ import logo_box from "../assets/images/logo_box.png";
 import { useProfile } from "../context/ProfileContext";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
-import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+
 import { useDispatch, useSelector } from "react-redux";
 import { authActions } from "../features/auth/authSlice";
 import type { AppDispatch, RootState } from "../app/store";
@@ -23,7 +23,9 @@ const Navigation: React.FC = () => {
   const { setProfile } = useProfile();
   const [mobileOpen, setMobileOpen] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated } = useSelector((state: RootState) => state.authentication);
+  const { isAuthenticated } = useSelector(
+    (state: RootState) => state.authentication
+  );
 
   const isLoggedIn = isAuthenticated;
 

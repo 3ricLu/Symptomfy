@@ -9,16 +9,10 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 
-import { useNavigate, useLocation } from "react-router-dom";
-import { jwtDecode } from "jwt-decode";
-import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+import { useNavigate } from "react-router-dom";
 
 import { useDispatch, useSelector } from "react-redux";
-import {
-  authActions,
-  loginUser,
-  registerUser,
-} from "../features/auth/authSlice";
+import { loginUser, registerUser } from "../features/auth/authSlice";
 import type { AppDispatch, RootState } from "../app/store";
 
 const SignIn: React.FC = () => {
@@ -36,7 +30,6 @@ const SignIn: React.FC = () => {
 
   const isValidEmail = (e: string) => e.includes("@");
 
-  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, errorMessage } = useSelector(
     (state: RootState) => state.authentication
