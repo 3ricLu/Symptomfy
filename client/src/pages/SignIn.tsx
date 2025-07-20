@@ -19,9 +19,7 @@ import {
   loginUser,
   registerUser,
 } from "../features/auth/authSlice";
-import { AppDispatch, RootState } from "../app/store";
-
-import { getProfile } from "../features/profile/profileAPI";
+import type { AppDispatch, RootState } from "../app/store";
 
 const SignIn: React.FC = () => {
   const navigate = useNavigate();
@@ -41,34 +39,10 @@ const SignIn: React.FC = () => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const { isLoading, errorMessage } = useSelector(
-    (state: RootState) => state.auth
+    (state: RootState) => state.authentication
   );
 
-  useEffect(() => {
-    console.log(location.pathname);
-
-    const token = sessionStorage.getItem(TOKEN);
-    if (token) {
-      try {
-        const { exp }: { exp: number } = jwtDecode(token);
-        if (exp * 1000 > Date.now()) {
-          dispatch(authActions.login());
-          if (
-            location.pathname === "/login" ||
-            location.pathname === "/signup"
-          ) {
-            navigate("/home");
-          }
-        } else {
-          dispatch(authActions.logout());
-        }
-      } catch {
-        throw new Error("Something went wrong");
-      }
-    } else {
-      dispatch(authActions.logout());
-    }
-  }, [dispatch, location.pathname, navigate]);
+  // Remove the auto-redirect logic entirely - let the user manually login
 
   useEffect(() => {
     setIsMatch(registerPassword === confirmPassword || confirmPassword === "");
@@ -114,7 +88,9 @@ const SignIn: React.FC = () => {
     }
   };
 
-  const resetError = () => setError("");
+  const resetError = () => {
+    setError("");
+  };
 
   return (
     <div className="w-screen h-screen flex items-center justify-center bg-white text-[#1C2D5A] px-4">

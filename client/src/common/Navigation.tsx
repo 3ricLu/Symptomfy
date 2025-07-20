@@ -14,18 +14,21 @@ import { useProfile } from "../context/ProfileContext";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
 import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
+import { useDispatch, useSelector } from "react-redux";
+import { authActions } from "../features/auth/authSlice";
+import type { AppDispatch, RootState } from "../app/store";
 
 const Navigation: React.FC = () => {
   const navigate = useNavigate();
   const { setProfile } = useProfile();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated } = useSelector((state: RootState) => state.authentication);
 
-  const isLoggedIn = !!sessionStorage.getItem(TOKEN);
+  const isLoggedIn = isAuthenticated;
 
   const handleLogout = () => {
-    localStorage.removeItem(TOKEN);
-    sessionStorage.removeItem(TOKEN);
-    sessionStorage.removeItem(REFRESH_TOKEN);
+    dispatch(authActions.logout());
     setProfile(null);
     navigate("/login");
     setMobileOpen(false);
@@ -143,7 +146,7 @@ const Navigation: React.FC = () => {
             )}
             {!isLoggedIn && (
               <NavLink
-                to="/signin"
+                to="/login"
                 className={linkClasses}
                 onClick={toggleMobile}
               >

@@ -108,10 +108,17 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
+    login: (state) => {
+      state.isAuthenticated = true;
+      state.isLoading = false;
+    },
     logout: (state) => {
       state.isAuthenticated = false;
       sessionStorage.removeItem(TOKEN);
       sessionStorage.removeItem(REFRESH_TOKEN);
+    },
+    clearError: (state) => {
+      state.errorMessage = "";
     },
   },
   extraReducers: (builder) => {

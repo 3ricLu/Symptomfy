@@ -1,13 +1,16 @@
 import axios from "axios";
-import store from "../app/store";
-import { authActions } from "../features/auth/authSlice";
 import { TOKEN, REFRESH_TOKEN } from "../features/auth/AuthConstants";
 
 const baseURL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 const api = axios.create({ baseURL });
 
 const handleError = (error: unknown): Promise<never> => {
-  store.dispatch(authActions.logout());
+  // Lazy import to avoid circular dependency
+  import("../app/store").then((module) => {
+    import("../features/auth/authSlice").then((authModule) => {
+      module.default.dispatch(authModule.authActions.logout());
+    });
+  });
   window.location.href = "/login";
   return Promise.reject(error);
 };
@@ -39,21 +42,36 @@ api.interceptors.response.use(
 
       if (!refreshToken) {
         handleError(error);
-        store.dispatch(authActions.logout());
+
+        import("../app/store").then((module) => {
+          import("../features/auth/authSlice").then((authModule) => {
+            module.default.dispatch(authModule.authActions.logout());
+          });
+        });
       }
 
       try {
-        const response = await axios.post(`${baseURL}/api/user/refresh`, {
-          headers: {
-            "Content-Type": "application/json",
+        const response = await axios.post(
+          `${baseURL}/api/user/refresh`,
+          {
+            refreshToken,
           },
-          refreshToken,
-        });
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
 
         const newAccessToken = response.data[TOKEN];
         sessionStorage.setItem(TOKEN, newAccessToken);
 
-        store.dispatch(authActions.login());
+        // Lazy import to avoid circular dependency
+        import("../app/store").then((module) => {
+          import("../features/auth/authSlice").then((authModule) => {
+            module.default.dispatch(authModule.authActions.login());
+          });
+        });
         api.defaults.headers.common[TOKEN] = newAccessToken;
         originalRequest.headers![TOKEN] = newAccessToken;
 
