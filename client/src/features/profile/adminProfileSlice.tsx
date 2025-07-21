@@ -21,7 +21,7 @@ export const adminProfileSlice = createSlice({
   name: "adminProfile",
   initialState,
   reducers: {
-    setAdminProfile: (state, action: PayloadAction<string>) => {
+    setAdminProfile: (state, action: PayloadAction<Partial<AdminProfileState>>) => {
       Object.assign(state, action.payload);
     },
     setId: (state, action: PayloadAction<string>) => {

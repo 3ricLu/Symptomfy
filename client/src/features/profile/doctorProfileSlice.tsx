@@ -29,7 +29,7 @@ export const doctorProfileSlice = createSlice({
   name: "doctorProfile",
   initialState,
   reducers: {
-    setDoctorProfile: (state, action: PayloadAction<string>) => {
+    setDoctorProfile: (state, action: PayloadAction<Partial<DoctorProfileState>>) => {
       Object.assign(state, action.payload);
     },
     setDoctorId: (state, action: PayloadAction<string>) => {

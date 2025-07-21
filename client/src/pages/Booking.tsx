@@ -151,7 +151,7 @@ export default function Booking() {
     setBookings(mockBookings);
     setDiagnoses(mockDiagnoses);
     handleDateSelect(new Date());
-  }, []);
+  }, [handleDateSelect]);
 
   const now = new Date();
   const bookingDates = bookings.map((b) =>

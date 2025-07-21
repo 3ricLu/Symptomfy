@@ -1,10 +1,16 @@
 import { configureStore } from "@reduxjs/toolkit";
 
 import authReducer from "../features/auth/authSlice";
+import patientProfileReducer from "../features/profile/patientProfileSlice";
+import doctorProfileReducer from "../features/profile/doctorProfileSlice";
+import adminProfileReducer from "../features/profile/adminProfileSlice";
 
 const store = configureStore({
   reducer: {
     authentication: authReducer,
+    patientProfile: patientProfileReducer,
+    doctorProfile: doctorProfileReducer,
+    adminProfile: adminProfileReducer,
   },
 });
 
