@@ -19,7 +19,6 @@ api.interceptors.request.use(
     const token = sessionStorage.getItem(TOKEN);
 
     if (token) {
-      request.headers = request.headers || {};
       request.headers.Authorization = token;
     }
     return request;
@@ -40,13 +39,7 @@ api.interceptors.response.use(
       const refreshToken = sessionStorage.getItem(REFRESH_TOKEN);
 
       if (!refreshToken) {
-        handleError(error);
-
-        import("../app/store").then((module) => {
-          import("../features/auth/authSlice").then((authModule) => {
-            module.default.dispatch(authModule.authActions.logout());
-          });
-        });
+        return handleError(error);
       }
 
       try {
